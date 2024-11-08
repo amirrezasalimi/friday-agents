@@ -1,0 +1,28 @@
+{
+  "name": "@friday-agents/core",
+  "version": "1.0.0",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "build:cjs": "bun build src/index.ts --packages external --outdir dist/cjs  --target node --format cjs",
+    "build:esm": "bun build src/index.ts --packages external --outdir dist/esm --target browser --format esm",
+    "build:types": "bunx tsc --emitDeclarationOnly --project tsconfig.json",
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types"
+  },
+  "peerDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "exports": {
+    "require": "./dist/cjs/index.js",
+    "import": "./dist/esm/index.esm.js"
+  },
+  "dependencies": {
+    "openai": "^4.70.1",
+    "strip-json-comments": "^5.0.1"
+  }
+}
