@@ -7,25 +7,38 @@
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
-    // Bundler mode
+    
+    // Module resolution
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    
+    // Declaration output
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": true,
+    "declarationDir": "./dist",
     "declarationMap": false,
+    "outDir": "./dist",
+    
+    // Remove outFile as it conflicts with declarationDir
+    // "outFile": "dist/index.d.ts", 
+    
     // Best practices
     "strict": false,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
     "sourceMap": false,
+    "esModuleInterop": true,
+    
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-    "outFile": "dist/index.d.ts"
+    
+    // Ensure types are resolved correctly
+    "baseUrl": "./src",
+    "rootDir": "./src"
   },
-
-  "include": ["./src/index.ts"], // Only include the main entry file for declarations
-  "exclude": ["tests"]
+  "include": ["src/**/*"], // Include all files in src
+  "exclude": ["node_modules", "dist", "tests"]
 }

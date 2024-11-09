@@ -19,11 +19,7 @@ npm install @friday-agents/core
 Here’s how to use the core package along with agents like `SearchAgent` and `ImageAgent`, showing how to configure them:
 
 ```javascript
-import FridayAgent from "@friday-agents/core";
-import ChartAgent from "@friday-agents/agents/chart";
-import JsCodeAgent from "@friday-agents/agents/js-code";
-import SearchAgent from "@friday-agents/agents/search";
-import ImageAgent from "@friday-agents/agents/image";
+import { FridayAgent, ChartAgent, JsCodeAgent, SearchAgent, ImageAgent } from "@friday-agents/core";
 
 // Configure SearchAgent with an online LLM (e.g., Perplexity)
 const searchAgent = new SearchAgent();

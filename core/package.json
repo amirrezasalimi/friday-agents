@@ -1,10 +1,27 @@
 {
   "name": "@friday-agents/core",
-  "version": "1.0.0",
+  "version": "1.0.4",
+  "description": "A JavaScript framework for orchestrating multiple AI-driven agents to handle complex tasks like data processing, code generation, chart creation, and image generation",
+  "private": false,
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
-  "type": "module",
   "types": "dist/index.d.ts",
+  "keywords": [
+    "ai",
+    "agents",
+    "llm",
+    "multi-agent",
+    "orchestration",
+    "automation",
+    "openai",
+    "perplexity",
+    "code-generation",
+    "image-generation",
+    "chart-generation",
+    "workflow",
+    "typescript",
+    "artificial-intelligence"
+  ],
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -18,11 +35,31 @@
     "typescript": "^5.6.3"
   },
   "exports": {
-    "require": "./dist/cjs/index.js",
-    "import": "./dist/esm/index.esm.js"
+    "require": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/cjs/index.js"
+    },
+    "import": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/esm/index.js"
+    }
   },
   "dependencies": {
     "openai": "^4.70.1",
     "strip-json-comments": "^5.0.1"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/amirrezasalimi/friday-agents"
+  },
+  "author": "Amirreza Salimi",
+  "bugs": {
+    "url": "https://github.com/amirrezasalimi/friday-agents/issues"
+  },
+  "homepage": "https://github.com/amirrezasalimi/friday-agents#readme"
 }
