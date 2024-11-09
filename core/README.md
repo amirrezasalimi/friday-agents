@@ -140,7 +140,7 @@ export default class WeatherAgent extends Agent<WeatherAgentConfig> {
 
 ### Key Concepts:
 
-1. **Custom Config**: `WeatherAgentConfig` defines the `apiKey` and `location` needed for the weather service.
+1. **Custom Config**: `WeatherAgentConfig` defines the `apiKey` needed for the weather service.
 2. **callFormat**: Specifies that the agent expects a JSON object with a `location` key.
 3. **onCall**: This method makes an API request to fetch weather data, processes the response, and returns the weather information.
 
