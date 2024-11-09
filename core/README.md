@@ -107,7 +107,6 @@ import Agent from "./agent";
 
 export interface WeatherAgentConfig {
     apiKey: string
-    location: string
 }
 
 export default class WeatherAgent extends Agent<WeatherAgentConfig> {
