@@ -19,7 +19,7 @@ interface Options {
 }
 
 
-class FridayAgent {
+class FridayAgents {
     private options: Options;
     baseLLmOi: OpenAI
     constructor(options: Options) {
@@ -59,7 +59,7 @@ class FridayAgent {
 
                 resolve(true);
             } catch (error) {
-                console.error("Error in FridayAgent run:", error);
+                console.error("Error in FridayAgents run:", error);
                 reject(error);
             }
         });
@@ -287,4 +287,4 @@ ${agent.callFormat()}
 
 }
 
-export default FridayAgent;
+export default FridayAgents;

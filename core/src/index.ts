@@ -1,31 +1,24 @@
 import ChartAgent from "./agents/chart";
 import JsCodeAgent from "./agents/js-code";
 import SearchAgent from "./agents/search";
-import FridayAgent from "./core";
+import ImageAgent from "./agents/image/index";
+import FridayAgents from "./core";
+import Agent from "./agents/agent";
 
-// Export the base Agent class and types
 
 // Export all types
 export type {
   FinalResponse,
-  ReasoningAndTools
+  ReasoningAndTools,
 } from './types';
 
-// Create the main export object that includes all agents
-const FridayAgents = {
-  FridayAgent,
-  JsCodeAgent,
-  SearchAgent,
-  ChartAgent
-};
 
 // Also export individual agents and types
 export {
-  FridayAgent,
+  FridayAgents,
   JsCodeAgent,
   SearchAgent,
-  ChartAgent
+  ChartAgent,
+  ImageAgent,
+  Agent,
 };
-
-// Export default
-export default FridayAgents;

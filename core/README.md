@@ -19,7 +19,7 @@ npm install @friday-agents/core
 Here’s how to use the core package along with agents like `SearchAgent` and `ImageAgent`, showing how to configure them:
 
 ```javascript
-import { FridayAgent, ChartAgent, JsCodeAgent, SearchAgent, ImageAgent } from "@friday-agents/core";
+import { FridayAgents, ChartAgent, JsCodeAgent, SearchAgent, ImageAgent } from "@friday-agents/core";
 
 // Configure SearchAgent with an online LLM (e.g., Perplexity)
 const searchAgent = new SearchAgent();
@@ -37,7 +37,7 @@ imageAgent.config = {
 };
 
 // Create an instance of the Friday Agent with configured agents
-const fa = new FridayAgent({
+const fa = new FridayAgents({
   agents: [searchAgent, new ChartAgent(), new JsCodeAgent(), imageAgent],
   maxAgentRetry: 2,
   onAgentFinished(name, result) {
@@ -75,7 +75,7 @@ console.log(result);
 - **apiKey**: Your API key for FusionBrain.ai.
 - **secretKey**: Your secret key for additional authentication.
 
-### Key Options for `FridayAgent`:
+### Key Options for `FridayAgents`:
 
 - **agents**: Array of agent instances like `SearchAgent`, `JsCodeAgent`, `ImageAgent`.
 - **maxAgentRetry**: Maximum number of retries for failed agent executions.
@@ -152,7 +152,7 @@ In essence, developing custom agents involves:
 - Defining what the agent needs (configurations, inputs, and outputs).
 - Implementing the agent's behavior (how it handles requests and interacts with external APIs or services).
 
-Once created, you can easily add your custom agent to the `FridayAgent` and automate workflows using your specialized tools!
+Once created, you can easily add your custom agent to the `FridayAgents` and automate workflows using your specialized tools!
 
 ### License
 
