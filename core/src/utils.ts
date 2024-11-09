@@ -21,8 +21,6 @@ export function extractFirstJson(content: string): string | null {
   if (firstOpenBrace !== -1 && lastCloseBrace !== -1 && lastCloseBrace > firstOpenBrace) {
     const jsonString = content.substring(firstOpenBrace, lastCloseBrace + 1);
 
-    console.log("json extracted: ", jsonString);
-
     try {
       // Try parsing to ensure it's valid JSON
       const parsedJson = JSON.parse(jsonString);
@@ -36,16 +34,19 @@ export function extractFirstJson(content: string): string | null {
   return null;
 }
 
-export function extractCodeBlocks(text: string) {
-  // Matches content between ```javascript...``` or ```...```
-  const regex = /```(?:javascript)?([\s\S]*?)```/g;
-  let matches = [];
-  let match;
+export function extractCodeBlocks(text: string): string {
+  // First try to find typescript/javascript block
+  const langRegex = /```(?:typescript|javascript)([\s\S]*?)```/i;
+  const langMatch = text.match(langRegex);
 
-  // Loop through all matches and store them
-  while ((match = regex.exec(text)) !== null) {
-    matches.push(match[1].trim());  // Extract and trim the matched content
+  if (langMatch) {
+    return langMatch[1].trim();
   }
 
-  return matches[0];
+  // If no typescript/javascript block found, look for plain block
+  const plainRegex = /```([\s\S]*?)```/;
+  const plainMatch = text.match(plainRegex);
+
+  // Return the code block content or original text
+  return plainMatch ? plainMatch[1].trim() : text.trim();
 }

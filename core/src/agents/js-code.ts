@@ -1,5 +1,6 @@
 import { extractCodeBlocks } from "../utils";
 import Agent from "./agent";
+import strip from "strip-comments";
 
 export default class JsCodeAgent extends Agent {
     viewType: Agent['viewType'] = "text";
@@ -22,7 +23,8 @@ export default class JsCodeAgent extends Agent {
     callFormat = () => '() => { return ""; }'
 
     async onCall(result: string): Promise<string> {
-        const fnCode = extractCodeBlocks(result);
+
+        const fnCode = strip(extractCodeBlocks(result));
         const CustomEval = (code: string) => {
             const transpiler = new Bun.Transpiler({
                 loader: "js"

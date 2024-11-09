@@ -227,7 +227,6 @@ Expected Response:
                     }
                 }
             }
-            console.log("newMessages", messages);
 
             if (agentCallResult !== null) {
                 await this.options.onAgentFinished?.(toolName, agentCallResult);
@@ -240,9 +239,6 @@ Expected Response:
 
         if (lastAgent && lastAgent.viewType === "text" && lastAgent.needSimplify) {
             lastAgentResponse = await this.simplifyResponse(lastAgent.name, messages);
-            console.log("lastAgentResponse");
-            console.log(lastAgentResponse.replaceAll("\n", "\n"));
-
         }
 
         const finalResponse: FinalResponse = {

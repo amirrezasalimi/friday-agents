@@ -103,8 +103,6 @@ export class Text2ImageAPI {
                 if (data.status === 'DONE') {
                     return data.images;
                 }
-                console.log("Checking Image Gen.");
-
                 await new Promise((resolve) => setTimeout(resolve, delay));
             }
             throw new Error('Generation timed out');
