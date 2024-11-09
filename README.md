@@ -2,6 +2,8 @@
 
 The **Friday Agents** is a JavaScript package for integrating and orchestrating multiple AI-driven tools (agents) for diverse tasks like data processing, code generation, chart creation, image generation, and more.
 
+![concept](concept.png)
+
 ### Features:
 
 - **Multi-agent orchestration**: Use multiple agents together to handle complex tasks.
@@ -19,7 +21,13 @@ npm install @friday-agents/core
 Here’s how to use the core package along with agents like `SearchAgent` and `ImageAgent`, showing how to configure them:
 
 ```javascript
-import { FridayAgents, ChartAgent, JsCodeAgent, SearchAgent, ImageAgent } from "@friday-agents/core";
+import {
+  FridayAgents,
+  ChartAgent,
+  JsCodeAgent,
+  SearchAgent,
+  ImageAgent,
+} from "@friday-agents/core";
 
 // Configure SearchAgent with an online LLM (e.g., Perplexity)
 const searchAgent = new SearchAgent();
