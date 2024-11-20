@@ -27,6 +27,7 @@ class FridayAgents {
         this.baseLLmOi = new OpenAI({
             apiKey: this.options.baseLLm.apikey,
             baseURL: this.options.baseLLm.endpoint,
+            dangerouslyAllowBrowser: true
         })
     }
 
@@ -52,7 +53,7 @@ class FridayAgents {
                 this.options.onChooseAgents?.(parsedResponse.tool_reasoning, parsedResponse.tools);
 
                 if (parsedResponse.tools.includes('no-tool') || !parsedResponse.tools.length) {
-                    await this.handleNoToolResponse(this.baseLLmOi, combinedMessages, prompt);
+                    await this.handleNoToolResponse(this.baseLLmOi, messages, prompt);
                 } else {
                     await this.executeAgents(parsedResponse.tools, pureMessages, prompt);
                 }
@@ -78,7 +79,6 @@ User Name: ${user.name}\nAge: ${user.age}\n` : ''}
 
     private generateCombinedPrompt(tools: string, prompt: string): string {
         return `
-Your data cutoff: April 2023.
 Available tools:
 ${tools}
 
@@ -197,7 +197,7 @@ Expected Response:
             }
             while (retryCount < this.options.maxAgentRetry) {
                 try {
-                    const agentPrompt = this.generateAgentPrompt(agent, toolName, lastAgentResponse);
+                    const agentPrompt = this.generateAgentPrompt(agent, lastAgent?.name ?? null, toolName, lastAgentResponse);
                     const newMessages: any = [...messages, { role: "user", content: agentPrompt }];
 
                     const agentResponse = await this.baseLLmOi.chat.completions.create({
@@ -223,15 +223,15 @@ Expected Response:
                         if (agentsInfo[toolName]) {
                             agentsInfo[toolName].error = error.message;
                             this.options.onAgentFailed(toolName, error.message);
+                            return;
                         }
                     }
                 }
             }
-
+            lastAgent = agent;
             if (agentCallResult !== null) {
                 await this.options.onAgentFinished?.(toolName, agentCallResult);
                 lastAgentResponse = agentCallResult;
-                lastAgent = agent;
             } else {
                 console.error(`Failed to execute agent ${toolName} after ${this.options.maxAgentRetry} attempts`);
             }
@@ -241,17 +241,19 @@ Expected Response:
             lastAgentResponse = await this.simplifyResponse(lastAgent.name, messages);
         }
 
+        const finalAgent = agentsInfo[lastAgent.name];
+        
         const finalResponse: FinalResponse = {
             finalResponse: {
                 type: lastAgent?.viewType ?? "text",
-                data: lastAgentResponse,
-                text: ""
+                data: finalAgent?.data,
+                text: finalAgent?.result,
             },
             usedAgents: Object.entries(agentsInfo).map(([agent, info]) => ({
                 name: agent,
                 result: info.result,
                 usedSeconds: info.usedSeconds,
-                data: info.data
+                data: info.data,
             }))
         };
 
@@ -271,10 +273,10 @@ Expected Response:
 
 
 
-    private generateAgentPrompt(agent: Agent, toolName: string, lastAgentResponse: string): string {
+    private generateAgentPrompt(agent: Agent, lastAgent: string | null, toolName: string, lastAgentResponse: string): string {
         return `
 Current Step: ${toolName},
-${lastAgentResponse ? `[${toolName}] response:\n${lastAgentResponse}\n---\n` : ''}
+${lastAgentResponse ? `[${lastAgent}] response:\n${lastAgentResponse}\n---\n` : ''}
 Now with ${toolName}, you have to generate the response in this specific format I want.
 
 ${agent.description}

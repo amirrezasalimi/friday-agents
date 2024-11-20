@@ -25,6 +25,7 @@ export class Text2ImageAPI {
 
     constructor(url: string, apiKey: string, secretKey: string) {
         this.url = url;
+        // @ts-ignore
         this.authHeaders = new Headers({
             'X-Key': `Key ${apiKey}`,
             'X-Secret': `Secret ${secretKey}`,
@@ -40,7 +41,9 @@ export class Text2ImageAPI {
             if (!response.ok) {
                 throw new Error(`Failed to retrieve model: ${response.statusText}`);
             }
-            const data: Text2ImageModel[] = await response.json();
+            let data: Text2ImageModel[] = []; // Correct
+
+             data = (await response.json()) as Text2ImageModel[];
             return data[0].id;
         } catch (error) {
             console.error('Error getting model:', error);
@@ -77,7 +80,7 @@ export class Text2ImageAPI {
             if (!response.ok) {
                 throw new Error(`Failed to generate image: ${response.statusText}`);
             }
-            const data = await response.json();
+            const data = await response.json() as { uuid: string };
             return data.uuid;
         } catch (error) {
             console.error('Error generating image:', error);
@@ -87,7 +90,7 @@ export class Text2ImageAPI {
 
     async checkGeneration(
         requestId: string,
-        attempts = 10,
+        attempts = 15,
         delay = 10000
     ): Promise<string[]> {
         try {
@@ -99,7 +102,7 @@ export class Text2ImageAPI {
                 if (!response.ok) {
                     throw new Error(`Failed to retrieve status: ${response.statusText}`);
                 }
-                const data: Text2ImageStatus = await response.json();
+                const data: Text2ImageStatus = (await response.json()) as Text2ImageStatus;
                 if (data.status === 'DONE') {
                     return data.images;
                 }

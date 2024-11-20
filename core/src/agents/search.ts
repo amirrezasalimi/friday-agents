@@ -40,7 +40,8 @@ Note: If user mentioned specific date or time , you should use search tool .
             const prompt = `please answer to this query very useful and summar, it's better to be in json structured. query: \n${query}`;
             const oai = new OpenAI({
                 apiKey: this.config?.api_key,
-                baseURL: this.config?.endpoint
+                baseURL: this.config?.endpoint,
+                dangerouslyAllowBrowser: true
             })
             const res = await oai.chat.completions.create({
                 model: this.config?.model ?? "",

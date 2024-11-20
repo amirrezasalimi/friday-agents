@@ -4,7 +4,7 @@ import SearchAgent from "./agents/search";
 import ImageAgent from "./agents/image/index";
 import FridayAgents from "./core";
 import Agent from "./agents/agent";
-
+import { extractFirstJson } from "./utils";
 
 // Export all types
 export type {
@@ -21,4 +21,5 @@ export {
   ChartAgent,
   ImageAgent,
   Agent,
+  extractFirstJson
 };

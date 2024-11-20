@@ -15,5 +15,6 @@ export interface FinalResponse {
         viewName?: string
         text?: string
         data?: any
+        agentDataOutput?: any
     }
 }
