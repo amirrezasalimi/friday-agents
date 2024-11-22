@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { withRateLimit } from '@/shared/utils/withRateLimit';
 
-
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
     try {
         const {
             messages,
@@ -46,3 +46,9 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export const POST = withRateLimit(handler, {
+    limit: 50,  // Higher limit for search as it's typically less resource-intensive
+    windowMs: 10 * 1000,
+    name: 'search-api'
+});

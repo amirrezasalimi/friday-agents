@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { withRateLimit } from '@/shared/utils/withRateLimit';
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
     try {
         const {
             messages,
@@ -17,25 +17,33 @@ export async function POST(request: NextRequest) {
 
         const apiKey = process.env.LLM_KEY;
         const model = process.env.LLM_MODEL;
-        const baseURL = process.env.LLM_HOST;
+        const endpoint = process.env.LLM_HOST;
 
-        if (!apiKey || !model || !baseURL) {
+        if (!apiKey || !model || !endpoint) {
             return NextResponse.json(
                 { error: 'Missing server configuration' },
                 { status: 500 }
             );
         }
 
-        const openai = new OpenAI({
-            apiKey: apiKey,
-            baseURL: baseURL
+        const response = await fetch(`${endpoint}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: model,
+                messages,
+                temperature
+            }),
         });
 
-        const completion = await openai.chat.completions.create({
-            model: model,
-            messages,
-            temperature
-        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const completion = await response.json();
         return NextResponse.json(completion);
     } catch (error) {
         console.error('Chat error:', error);
@@ -45,3 +53,9 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export const POST = withRateLimit(handler, {
+    limit: 30,
+    windowMs: 10 * 1000,
+    name: 'chat-api'
+});

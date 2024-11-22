@@ -98,6 +98,7 @@ const useChat = () => {
                         currentAgent: name
                     });
                 },
+                debug: true
             });
 
             try {

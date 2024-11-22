@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
+import { withRateLimit } from '@/shared/utils/withRateLimit';
 
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
     try {
         const { prompt, } = await request.json();
 
@@ -52,3 +53,9 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export const POST = withRateLimit(handler, {
+    limit: 1,  // Lower limit for image generation as it's more resource-intensive
+    windowMs: 60 * 1000,  // 1 minute window
+    name: 'image-generation-api'
+});
