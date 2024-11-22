@@ -11,7 +11,7 @@ export default class SearchAgent extends Agent<SearchAgentConfig> {
     viewType: Agent['viewType'] = "text"; // The output will be presented in text format
     needSimplify: boolean = true; // Flag to determine if the search results need to be simplified
     name: string = "search"; // Agent's name for easy identification
-    description: string = `This agent is used to search for real-time or historical data from online sources,
+    description: string = `This agent is used to search for real-time & updated information or historical data from online sources / internet,
 such as Google. It is versatile for retrieving the most up-to-date information, like current events or breaking news,
 as well as archived or past data or current, making it suitable for research, trends analysis, and historical references.
 Note: If user mentioned specific date or time , you should use search tool .
@@ -25,6 +25,7 @@ Note: If user mentioned specific date or time , you should use search tool .
 
     // This method is triggered when the agent receives a search query and processes the result
     async onCall(result: string): Promise<string | null> {
+        
         let jsonData: {
             query: string
         } | null = null;
@@ -37,7 +38,7 @@ Note: If user mentioned specific date or time , you should use search tool .
 
         const query = jsonData?.query;
         if (query) {
-            const prompt = `please answer to this query very useful and summar, it's better to be in json structured. query: \n${query}`;
+            const prompt = `please answer to this query very useful, it's better to be in readme & structured format. query: \n${query}`;
             const oai = new OpenAI({
                 apiKey: this.config?.api_key,
                 baseURL: this.config?.endpoint,

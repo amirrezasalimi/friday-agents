@@ -1,166 +1,113 @@
 # Friday Agents
 
-The **Friday Agents** is a JavaScript package for integrating and orchestrating multiple AI-driven tools (agents) for diverse tasks like data processing, code generation, chart creation, image generation, and more.
+The **Friday Agents** is a powerful JavaScript framework for building AI-powered applications using a multi-agent architecture. It consists of two main components:
+
+1. **Core Library** (`/core`): A TypeScript library for orchestrating multiple AI agents
+2. **Demo App** (`/app`): A Next.js application showcasing the library's capabilities
 
 ![concept](concept.png)
 
-### Features:
+## Project Structure
 
-- **Multi-agent orchestration**: Use multiple agents together to handle complex tasks.
-- **Customizable agent configuration**: Easily configure agents like `SearchAgent`, `JsCodeAgent`, `ImageAgent`, and `ChartAgent`.
-- **Flexible workflows**: Tailor each agent’s behavior and manage retries and result handling.
+```
+friday-agents/
+├── core/               # Core library implementation
+│   ├── src/           # Source code
+│   └── README.md      # Library documentation
+└── app/               # Next.js demo application
+    └── src/           # Application source
+```
 
-### Installation
+## Available Agents
+
+The framework comes with several built-in agents:
+
+- **SearchAgent**: Performs online searches and information retrieval
+- **JsCodeAgent**: Generates and executes JavaScript code
+- **ReplicateImageAgent**: Generates images using Replicate's API
+- **ChartAgent**: Creates data visualizations and charts
+- **CodeGenAgent**: Generates code in various programming languages
+
+## Quick Start
+
+### 1. Core Library Setup
 
 ```bash
-npm install @friday-agents/core
+cd core
+npm install
+npm run build  # Build the core library
+npm link      # Make the package available locally
 ```
 
-### Usage
+See [Core Library Documentation](core/README.md) for detailed usage instructions.
 
-Here’s how to use the core package along with agents like `SearchAgent` and `ImageAgent`, showing how to configure them:
+### 2. Demo Application Setup
 
-```javascript
-import {
-  FridayAgents,
-  ChartAgent,
-  JsCodeAgent,
-  SearchAgent,
-  ImageAgent,
-} from "@friday-agents/core";
-
-// Configure SearchAgent with an online LLM (e.g., Perplexity)
-const searchAgent = new SearchAgent();
-searchAgent.config = {
-  endpoint: "...",
-  api_key: "sk-or-v1-xx",
-  model: "perplexity/llama-3.1-sonar-small-128k-online",
-};
-
-// Configure ImageAgent with API keys for FusionBrain.ai
-const imageAgent = new ImageAgent();
-imageAgent.config = {
-  apiKey: "your-api-key-here",
-  secretKey: "your-secret-key-here",
-};
-
-// Create an instance of the Friday Agent with configured agents
-const fa = new FridayAgents({
-  agents: [searchAgent, new ChartAgent(), new JsCodeAgent(), imageAgent],
-  maxAgentRetry: 2,
-  onAgentFinished(name, result) {
-    console.log(`Agent finished: ${name}`, result);
-  },
-  onFinish(data) {
-    console.log("Final result:", data);
-  },
-  baseLLm: {
-    model: "llama3.2-8b",
-    endpoint: "...",
-    apikey: "xxx",
-  },
-});
-
-// Run a task with a specific prompt
-const result = await fa.run({
-  prompt: "Generate an image of a random landscape",
-  messages: [],
-});
-
-console.log(result);
+```bash
+cd app
+npm install
+npm link @friday/core  # Link the local core library
 ```
 
-### Key Configuration Options:
+Create a `.env.local` file in the `/app` directory:
 
-#### **SearchAgent Configuration**:
+```env
+# Base LLM Configuration (Required)
+# Using OpenRouter for base LLM
+LLM_HOST=https://openrouter.ai/api/v1
+LLM_MODEL=perplexity/llama-3.1-sonar-small-128k-chat
+LLM_KEY=your_openrouter_api_key
 
-- **endpoint**: URL for the external API (e.g., Perplexity API).
-- **api_key**: Your API key to authenticate requests.
-- **model**: The model name or ID for the language model.
+# Online Search LLM Configuration (Required)
+# Using OpenRouter with Perplexity for online search
+LLM_ONLINE_HOST=https://openrouter.ai/api/v1
+LLM_ONLINE_MODEL=perplexity/llama-3.1-sonar-large-128k-online
+LLM_ONLINE_KEY=your_openrouter_api_key
 
-#### **ImageAgent Configuration**:
-
-- **apiKey**: Your API key for FusionBrain.ai.
-- **secretKey**: Your secret key for additional authentication.
-
-### Key Options for `FridayAgents`:
-
-- **agents**: Array of agent instances like `SearchAgent`, `JsCodeAgent`, `ImageAgent`.
-- **maxAgentRetry**: Maximum number of retries for failed agent executions.
-- **onFinish**: Callback to handle final results after all agents have finished.
-- **baseLLm**: Configure the base language model (OpenAI compatible LLMs).
-
-### Example Prompts:
-
-- `"Generate a chart visualizing sales data for the past year"`
-- `"Write a JavaScript function to calculate the Fibonacci sequence"`
-- `"Find the top 5 most recent news articles on AI"`
-- `"Generate an image of a futuristic city"`
-
-### Developing Custom Agents for Friday Agents
-
-Custom agents in **Friday Agents** allow you to extend functionality by integrating specialized tasks, like querying APIs or processing custom data. These agents inherit from the base `Agent` class and can be configured to perform specific actions (like fetching weather data, running code, or generating images).
-
-#### Key Components:
-
-1. **Configuration**: Each agent has a configuration that defines how it connects to external services (e.g., API keys, endpoints).
-2. **View Type**: Defines the format of the result (e.g., text, image, JSON).
-3. **Call Format**: Specifies how to structure the data when calling the agent (e.g., search queries or commands).
-4. **Agent Logic (`onCall`)**: This is where the agent processes the input, makes external calls, and returns the result.
-
-### Example: WeatherAgent
-
-```javascript
-import Agent from "./agent";
-
-export interface WeatherAgentConfig {
-    apiKey: string
-}
-
-export default class WeatherAgent extends Agent<WeatherAgentConfig> {
-    viewType: Agent['viewType'] = "text"; // Output format as text
-    name: string = "weather"; // Agent's name
-    description: string = "This agent fetches real-time weather data for a given location.";
-
-    // Returns expected query format for the agent
-    callFormat(): string {
-        return '{ "location": "city name or coordinates" }';
-    }
-
-    // Method to fetch weather data
-    async onCall(result: string): Promise<string | null> {
-        const { location } = JSON.parse(result) ?? {};
-        if (!location) return null;
-
-        // Make API call to weather service
-        const res = await fetch(`https://api.weatherapi.com/v1/current.json?key=${this.config.apiKey}&q=${location}`);
-        const weatherData = await res.json();
-
-        if (weatherData && weatherData.current) {
-            const { temp_c, condition } = weatherData.current;
-            return `The current temperature in ${location} is ${temp_c}°C with ${condition.text}.`;
-        }
-
-        return null;
-    }
-}
+# Image Generation Configuration (Optional)
+REPLICATE_API_TOKEN=your_replicate_api_token
+REPLICATE_IMAGE_MODEL=black-forest-labs/flux-schnell
 ```
 
-### Key Concepts:
+All agent configurations are handled automatically through the Next.js API routes. You only need to set up these environment variables to get started.
 
-1. **Custom Config**: `WeatherAgentConfig` defines the `apiKey` needed for the weather service.
-2. **callFormat**: Specifies that the agent expects a JSON object with a `location` key.
-3. **onCall**: This method makes an API request to fetch weather data, processes the response, and returns the weather information.
+Run the development server:
+```bash
+npm run dev
+```
 
----
+See [Demo App Documentation](app/README.md) for more details.
 
-In essence, developing custom agents involves:
+## Features
 
-- Defining what the agent needs (configurations, inputs, and outputs).
-- Implementing the agent's behavior (how it handles requests and interacts with external APIs or services).
+- **Multi-agent Orchestration**: Automatically selects and coordinates multiple agents
+- **Flexible Configuration**: Easy to configure and extend with custom agents
+- **Modern UI**: Beautiful Next.js-based interface with real-time updates
+- **TypeScript Support**: Full type safety and IDE support
+- **Extensible**: Easy to add new agents and capabilities
 
-Once created, you can easily add your custom agent to the `FridayAgents` and automate workflows using your specialized tools!
+## Development
 
-### License
+### Adding a New Agent
 
-MIT License.
+1. Create a new agent class extending the base Agent class
+2. Implement required methods (name, description, viewType, callFormat, onCall)
+3. Add configuration options if needed
+4. Register the agent with FridayAgents
+
+See [Core Library Documentation](core/README.md) for detailed agent development instructions.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Community
+
+Join our community to get help, share your projects, and connect with other developers:
+
+- Discord: [Join our Discord Server](https://discord.gg/AP42aAvS74)
+- Twitter: [@amirrezasalimi](https://github.com/amirrezasalimi)
+
+## License
+
+MIT License

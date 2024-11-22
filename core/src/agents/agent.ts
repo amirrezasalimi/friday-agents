@@ -11,7 +11,7 @@ interface AgentOptions {
 }
 
 export default abstract class Agent<C = {}, DataOutput = {}> {
-    protected ai: AgentOptions['ai'] | null = null;
+    public ai: AgentOptions['ai'] | null = null;
     public config: C | null = null
     abstract viewType: "text" | "view"
     needSimplify: boolean = false
@@ -19,5 +19,6 @@ export default abstract class Agent<C = {}, DataOutput = {}> {
     abstract description: string
     abstract callFormat(): string;
     abstract onCall(result: string): Promise<any>;
+    needsPreviousResult?: boolean
     dataOutput?: DataOutput
 }

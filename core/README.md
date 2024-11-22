@@ -16,89 +16,126 @@ npm install @friday-agents/core
 
 ### Usage
 
-Here’s how to use the core package along with agents like `SearchAgent` and `ImageAgent`, showing how to configure them:
+Here's how to use the core package:
 
-```javascript
-import { FridayAgents, ChartAgent, JsCodeAgent, SearchAgent, ImageAgent } from "@friday-agents/core";
+```typescript
+import { FridayAgents } from "@friday-agents/core";
 
-// Configure SearchAgent with an online LLM (e.g., Perplexity)
-const searchAgent = new SearchAgent();
-searchAgent.config = {
-  endpoint: "...",
-  api_key: "sk-or-v1-xx",
-  model: "perplexity/llama-3.1-sonar-small-128k-online",
-};
-
-// Configure ImageAgent with API keys for FusionBrain.ai
-const imageAgent = new ImageAgent();
-imageAgent.config = {
-  apiKey: "your-api-key-here",
-  secretKey: "your-secret-key-here",
-};
-
-// Create an instance of the Friday Agent with configured agents
+// Create an instance of Friday Agents
 const fa = new FridayAgents({
-  agents: [searchAgent, new ChartAgent(), new JsCodeAgent(), imageAgent],
+  agents: [/* your configured agents */],
   maxAgentRetry: 2,
-  onAgentFinished(name, result) {
-    console.log(`Agent finished: ${name}`, result);
-  },
-  onFinish(data) {
-    console.log("Final result:", data);
-  },
   baseLLm: {
-    model: "llama3.2-8b",
-    endpoint: "...",
-    apikey: "xxx",
+    model: "your-model",
+    endpoint: "your-endpoint",
+    apikey: "your-api-key",
+  },
+  onChooseAgents: (reason, agents) => {
+    console.log('Chosen agents:', agents, 'because:', reason);
+  },
+  onUsingAgent: (name) => {
+    console.log('Using agent:', name);
+  },
+  onAgentFinished: (name, result) => {
+    console.log(`Agent ${name} finished:`, result);
+  },
+  onAgentFailed: (name, error) => {
+    console.log(`Agent ${name} failed:`, error);
+  },
+  onFinish: (data) => {
+    console.log('Final result:', data);
   },
 });
 
-// Run a task with a specific prompt
-const result = await fa.run({
-  prompt: "Generate an image of a random landscape",
-  messages: [],
+// Run with messages
+await fa.run({
+  messages: [
+    { role: "user", content: "Your request here" }
+  ],
+  user: {  // Optional user context
+    name: "John",
+    age: 25
+  },
+  date: "2024-01-01",  // Optional current date
+  cutoff_date: "2023-12-31"  // Optional data cutoff date
 });
 
-console.log(result);
+// Results are handled through the onFinish callback
 ```
 
-### Key Configuration Options:
+### Configuration Options
 
-#### **SearchAgent Configuration**:
+#### FridayAgents Options
 
-- **endpoint**: URL for the external API (e.g., Perplexity API).
-- **api_key**: Your API key to authenticate requests.
-- **model**: The model name or ID for the language model.
+- **agents**: Array of agent instances that will be available for use
+- **maxAgentRetry**: Maximum number of retries for failed agent executions
+- **baseLLm**: Configuration for the base language model
+  - **model**: Model identifier
+  - **endpoint**: API endpoint
+  - **apikey**: API key for authentication
+- **onChooseAgents**: Callback when agents are selected for a task
+- **onUsingAgent**: Callback when an agent starts processing
+- **onAgentFinished**: Callback when an agent completes successfully
+- **onAgentFailed**: Callback when an agent encounters an error
+- **onFinish**: Callback that receives the final results after all agents complete (this is the main way to get results)
 
-#### **ImageAgent Configuration**:
+#### Run Method Options
 
-- **apiKey**: Your API key for FusionBrain.ai.
-- **secretKey**: Your secret key for additional authentication.
+- **messages**: Array of chat messages in OpenAI format
+- **user** (optional): User context with name and age
+- **date** (optional): Current date string
+- **cutoff_date** (optional): Data cutoff date string
 
-### Key Options for `FridayAgents`:
+### Response Format
 
-- **agents**: Array of agent instances like `SearchAgent`, `JsCodeAgent`, `ImageAgent`.
-- **maxAgentRetry**: Maximum number of retries for failed agent executions.
-- **onFinish**: Callback to handle final results after all agents have finished.
-- **baseLLm**: Configure the base language model (OpenAI compatible LLMs).
+The final results are provided through the `onFinish` callback, which receives a `FinalResponse` object:
 
-### Example Prompts:
+```typescript
+interface FinalResponse {
+  finalResponse: {
+    type: string;  // Response type (e.g., "text", "view")
+    text: string | null;  // Text response if applicable
+    data?: any;  // Additional data if provided (the agent's dataOutput)
+  };
+  usedAgents: Array<{
+    name: string;
+    result: any;
+    usedSeconds: number;
+    data: any;
+  }>;
+}
+```
 
-- `"Generate a chart visualizing sales data for the past year"`
-- `"Write a JavaScript function to calculate the Fibonacci sequence"`
-- `"Find the top 5 most recent news articles on AI"`
-- `"Generate an image of a futuristic city"`
+### Developing Custom Agents
 
-### Developing Custom Agents for Friday Agents
+When creating a custom agent, implement the following interface:
 
-Custom agents in **Friday Agents** allow you to extend functionality by integrating specialized tasks, like querying APIs or processing custom data. These agents inherit from the base `Agent` class and can be configured to perform specific actions (like fetching weather data, running code, or generating images).
+```typescript
+interface Agent {
+  name: string;
+  description: string;
+  viewType: string;
+  needSimplify?: boolean;
+  config?: any;
+  dataOutput?: any;
+  // no need to implement this, it's will be provided.
+  ai?: {
+    create: (params: any) => Promise<any>;
+  };
 
-#### Key Components:
+  callFormat(): string;
+  onCall(result: string): Promise<string | null>;
+}
+```
 
-1. **Configuration**: Each agent has a configuration that defines how it connects to external services (e.g., API keys, endpoints).
-2. **View Type**: Defines the format of the result (e.g., text, image, JSON).
-3. **Call Format**: Specifies how to structure the data when calling the agent (e.g., search queries or commands).
-4. **Agent Logic (`onCall`)**: This is where the agent processes the input, makes external calls, and returns the result.
+Key components:
+
+1. **name**: Unique identifier for the agent
+2. **description**: Clear description of the agent's purpose and capabilities
+3. **viewType**: Output format (e.g., "text", "image", "json")
+4. **needSimplify**: Whether the output should be simplified by the LLM
+5. **callFormat**: Returns the expected input format
+6. **onCall**: Implements the agent's core functionality
 
 ### Example: WeatherAgent
 
@@ -143,13 +180,6 @@ export default class WeatherAgent extends Agent<WeatherAgentConfig> {
 1. **Custom Config**: `WeatherAgentConfig` defines the `apiKey` needed for the weather service.
 2. **callFormat**: Specifies that the agent expects a JSON object with a `location` key.
 3. **onCall**: This method makes an API request to fetch weather data, processes the response, and returns the weather information.
-
----
-
-In essence, developing custom agents involves:
-
-- Defining what the agent needs (configurations, inputs, and outputs).
-- Implementing the agent's behavior (how it handles requests and interacts with external APIs or services).
 
 Once created, you can easily add your custom agent to the `FridayAgents` and automate workflows using your specialized tools!
 

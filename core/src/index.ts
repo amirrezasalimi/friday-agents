@@ -1,6 +1,7 @@
 import ChartAgent from "./agents/chart";
 import JsCodeAgent from "./agents/js-code";
 import SearchAgent from "./agents/search";
+import CodeGenAgent from "./agents/code-gen";
 import ImageAgent from "./agents/image/index";
 import FridayAgents from "./core";
 import Agent from "./agents/agent";
@@ -17,6 +18,7 @@ export type {
 export {
   FridayAgents,
   JsCodeAgent,
+  CodeGenAgent,
   SearchAgent,
   ChartAgent,
   ImageAgent,

@@ -1,16 +1,21 @@
 import { extractFirstJson } from "../utils";
 import Agent from "./agent";
-export interface ChartAgentResponse {
-    type: "bar" | "pie"
+
+interface ChartData {
+    title: string;
+    type: "bar" | "pie" | "line";
     values: {
-        label: string
-        value: number
-    }[]
-    labelFormat: string
+        label: string;
+        value: number;
+    }[];
+    formatCurrency?: boolean;
+    formatSymbol?: string;
 }
-export default class ChartAgent extends Agent {
+
+
+export default class ChartAgent extends Agent<{}, ChartData> {
     viewType: Agent['viewType'] = "view";
-    needSimplify: boolean = false;
+    needSimplify: boolean = true;
     name = "chart"
     useCases: string[] = [
         "1. **Data Analysis**: Visualizing complex datasets to identify trends, patterns, and insights.",
@@ -31,7 +36,7 @@ Rules
 `;
     callFormat = () => `{
     "title": "short title about this chart",
-    "type": "...", // bar | pie
+    "type": "...", // bar | pie | line
     "formatCurrency": true | false,
     "formatSymbol": "Symbol of formatted value",
     "values": [
@@ -42,11 +47,13 @@ Rules
    ],
 
 }`
-    async onCall(result: string): Promise<ChartAgentResponse | null> {
+    async onCall(result: string) {
         try {
             const firstJson = extractFirstJson(result);
             if (!firstJson) return null;
-            return JSON.parse(firstJson);
+            const jsonData = JSON.parse(firstJson) as ChartData;
+            this.dataOutput = jsonData;
+            return jsonData.values;
         } catch (e) {
             return null;
         }

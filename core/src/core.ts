@@ -1,5 +1,5 @@
 import type Agent from "./agents/agent";
-import type { FinalResponse, ReasoningAndTools } from "./types";
+import type { FinalResponse } from "./types";
 import { OpenAI } from 'openai';
 import { extractFirstJson } from "./utils";
 
@@ -17,6 +17,11 @@ interface Options {
     onAgentFailed: (name: string, error: string) => void
     onFinish: (data: FinalResponse) => void
 }
+interface ReasoningAgentResponse {
+    tool_reasoning: string
+    tools: string[]
+    message?: string
+}
 
 
 class FridayAgents {
@@ -31,21 +36,21 @@ class FridayAgents {
         })
     }
 
-    async run({ prompt, messages, user }: {
+    async run({ messages, user, date, cutoff_date }: {
         user?: {
             name: string
             age: number
         },
         date?: string
-        prompt: string,
+        cutoff_date?: string
         messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
     }) {
         return new Promise(async (resolve, reject) => {
             try {
                 const tools = this.options.agents.map(agent => `${agent.name}:\n${agent.description}`).join("\n\n");
-                const systemPrompt = this.generateSystemPrompt(user);
-                const pureMessages = this.combineMessages(systemPrompt, messages, prompt);
-                const combinedPrompt = this.generateCombinedPrompt(tools, prompt);
+                const systemPrompt = this.generateSystemPrompt(user, date, cutoff_date);
+                const pureMessages = this.combineMessages(systemPrompt, messages);
+                const combinedPrompt = this.generateCombinedPrompt(tools);
                 const combinedMessages = this.combineMessages(systemPrompt, messages, combinedPrompt);
 
                 const response = await this.getOpenAIResponse(this.baseLLmOi, combinedMessages);
@@ -53,9 +58,9 @@ class FridayAgents {
                 this.options.onChooseAgents?.(parsedResponse.tool_reasoning, parsedResponse.tools);
 
                 if (parsedResponse.tools.includes('no-tool') || !parsedResponse.tools.length) {
-                    await this.handleNoToolResponse(this.baseLLmOi, messages, prompt);
+                    await this.handleNoToolResponse(parsedResponse);
                 } else {
-                    await this.executeAgents(parsedResponse.tools, pureMessages, prompt);
+                    await this.executeAgents(parsedResponse.tools, pureMessages);
                 }
 
                 resolve(true);
@@ -66,55 +71,80 @@ class FridayAgents {
         });
     }
 
-    private generateSystemPrompt(user?: { name: string; age: number }): string {
+    private generateSystemPrompt(user?: { name: string; age: number }, date?: string, cutoff_date?: string): string {
         return `
 ${user ? `Understand the user intent,
 You are a super helpful assistant. Adjust your tone based on the user's preference:
 User Name: ${user.name}\nAge: ${user.age}\n` : ''}
+
+${date ? `Today's Date: ${date}` : ''}
+${cutoff_date ? `Data Cutoff Date: ${cutoff_date}` : ''}
 
 - Be friendly and casual for informal queries.
 - Be formal and concise for professional or technical tasks.
 `;
     }
 
-    private generateCombinedPrompt(tools: string, prompt: string): string {
+    private generateCombinedPrompt(tools: string): string {
         return `
-Available tools:
-${tools}
+You are a highly capable AI assistant with access to specialized tools. Your role is to either provide direct assistance or determine which tools are needed to best help the user.
 
-Rules:
-- Based on the user's query, determine if the prompt is clear enough to provide an answer.
-- If the query is unclear or if more explanation is needed, respond with the tools array containing ["no-tool"].
-- If a tool is needed, determine which available tools are necessary to accomplish the tasks.
-- If the Prompt wasn't clear enough about which tools we have to use, just return ["no-tool"] in tools array.
-- We don't always need tools to answer questions.
-- Always Return valid JSON format, no extra talk.
-- For general information that could be answered without any tools, just return ["no-tool"] in tools array. (unless it doesn't mention any date).
-- Strive for accuracy and precision in your tool selection and reasoning.
+Available Tools: ${tools}
 
-User's Prompt:
-${prompt}
+Core Instructions:
+1. Analyze the user's intent carefully - what are they really trying to achieve?
+2. For direct questions or casual conversation:
+   - Respond naturally and engagingly in the "message" field
+   - Set tools to ["no-tool"]
+   - Be conversational, friendly, and helpful
+   - Include relevant examples or analogies when appropriate
+   - Feel free to ask clarifying questions in your message if needed
 
-Expected Response:
+3. For tasks requiring tools:
+   - Choose the most appropriate tool(s) for the job
+   - Explain your reasoning clearly
+   - Only select tools that are absolutely necessary
+   - If multiple tools are needed, list them in order of us
+   - If you are not sure, respond with the following:
+   - Set tools to ["no-tool"]
+   - and respond simply, you can't help with that.
+
+4. Response Style Guide:
+   - Be conversational and natural, not robotic
+   - Show personality while maintaining professionalism
+   - Use appropriate emojis or markdown formatting when it adds value
+   - Match the user's tone and energy level
+   - Feel free to be creative and engaging in your responses
+
+5. Make sure the response is valid JSON.
+
+Remember: You're not just a tool selector - you're a helpful assistant first. When no tools are needed, focus on providing valuable, engaging responses that truly help the user.
+
+Always responsd in valid JSON format.
+Response Format:
 {
-    "tool_reasoning": "Provide reasoning for the selected tools or indicate no tools are needed.",
-    "tools": ["..."] // Respond with ["no-tool"] if the prompt is unclear or needs more explanation.
+    "tool_reasoning": string, // Your thought process for tool selection
+    "tools": string[], // Tool names or ["no-tool"]
+    "message": string // Required for no-tool responses - make it helpful and engaging!
 }
 `;
     }
 
-    private combineMessages(systemPrompt: string, messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[], combinedPrompt: string): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
-        return [
-            {
-                role: "system",
-                content: systemPrompt,
-            },
+    private combineMessages(
+        systemPrompt: string,
+        messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+        combinedPrompt?: string
+    ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
+        const baseMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+            { role: "system", content: systemPrompt },
             ...messages,
-            {
-                role: "user",
-                content: combinedPrompt
-            }
         ];
+
+        if (combinedPrompt) {
+            baseMessages.push({ role: "user", content: combinedPrompt });
+        }
+
+        return baseMessages;
     }
 
     private async getOpenAIResponse(oai: OpenAI, messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]): Promise<OpenAI.Chat.Completions.ChatCompletion> {
@@ -126,16 +156,13 @@ Expected Response:
         });
     }
 
-    private parseResponse(response: OpenAI.Chat.Completions.ChatCompletion): { tool_reasoning: string; tools: string[] } {
+    private parseResponse(response: OpenAI.Chat.Completions.ChatCompletion): ReasoningAgentResponse {
         if (response.choices?.length) {
             const content = extractFirstJson(response.choices[0].message.content ?? "");
             if (!content) {
                 throw new Error("Invalid JSON in response");
             }
-            const parsedResponse = JSON.parse(content) as {
-                tool_reasoning: string,
-                tools: string[]
-            };
+            const parsedResponse = JSON.parse(content) as ReasoningAgentResponse;
 
             if (!parsedResponse.tools.length) {
                 parsedResponse.tools = ['no-tool'];
@@ -146,16 +173,10 @@ Expected Response:
         throw new Error("No choices in OpenAI response");
     }
 
-    private async handleNoToolResponse(oai: OpenAI, messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[], prompt: string) {
-        const noToolResponse = await this.baseLLmOi.chat.completions.create({
-            messages: [...messages, { role: "user", content: prompt }],
-            model: this.options.baseLLm.model,
-            temperature: 0.7
-        });
-
+    private async handleNoToolResponse(reasoning: ReasoningAgentResponse) {
         const finalResponse: FinalResponse = {
             finalResponse: {
-                text: noToolResponse.choices[0].message.content || "",
+                text: reasoning.message || "I apologize, but I couldn't generate a response for your query.",
                 type: "text"
             },
             usedAgents: []
@@ -165,7 +186,7 @@ Expected Response:
     }
 
 
-    private async executeAgents(tools: string[], messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[], prompt: string) {
+    private async executeAgents(tools: string[], messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]) {
         let lastAgentResponse: string = "";
         let lastAgent: Agent | undefined;
 
@@ -176,7 +197,7 @@ Expected Response:
             error?: string
         }> = {};
 
-
+        const agentsMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
         for (let i = 0; i < tools.length; i++) {
             const toolName = tools[i];
             const agent = this.options.agents.find(a => a.name === toolName);
@@ -200,6 +221,16 @@ Expected Response:
                     const agentPrompt = this.generateAgentPrompt(agent, lastAgent?.name ?? null, toolName, lastAgentResponse);
                     const newMessages: any = [...messages, { role: "user", content: agentPrompt }];
 
+
+                    agent.ai = {
+                        create: async (params) => {
+                            return await this.baseLLmOi.chat.completions.create({
+                                model: this.options.baseLLm.model,
+                                temperature: 0.2,
+                                ...params
+                            });
+                        }
+                    }
                     const agentResponse = await this.baseLLmOi.chat.completions.create({
                         messages: newMessages,
                         model: this.options.baseLLm.model,
@@ -213,8 +244,15 @@ Expected Response:
                         usedSeconds,
                         data: agent.dataOutput
                     }
-                    messages.push({ role: "user", content: agentPrompt })
-                    messages.push({ role: "user", content: `[Agent ${toolName}]\nAgent Step 1 Output:\n${agentStep1Result}\nAgent Call Result:\n${agentCallResult}` });
+
+                    const normalizedAgentResult = typeof agentCallResult == "string" ? agentCallResult : JSON.stringify(agentCallResult);
+                    const agentPromptMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = { role: "user", content: agentPrompt };
+                    const agentCallResultMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = { role: "user", content: `[Agent ${toolName}]\nAgent Step 1 Output:\n${agentStep1Result}\nAgent Call Result:\n${normalizedAgentResult}` }
+                    messages.push(agentPromptMessage)
+                    messages.push(agentCallResultMessage);
+
+                    agentsMessages.push(agentPromptMessage)
+                    agentsMessages.push(agentCallResultMessage);
                     break;
                 } catch (error) {
                     console.error(`Error executing agent ${toolName}:`, error);
@@ -237,17 +275,18 @@ Expected Response:
             }
         }
 
-        if (lastAgent && lastAgent.viewType === "text" && lastAgent.needSimplify) {
+        if (lastAgent && lastAgent.needSimplify) {
             lastAgentResponse = await this.simplifyResponse(lastAgent.name, messages);
         }
 
         const finalAgent = agentsInfo[lastAgent.name];
-        
+
         const finalResponse: FinalResponse = {
+            agentsMessages: agentsMessages,
             finalResponse: {
                 type: lastAgent?.viewType ?? "text",
                 data: finalAgent?.data,
-                text: finalAgent?.result,
+                text: typeof lastAgentResponse == "string" ? lastAgentResponse : null,
             },
             usedAgents: Object.entries(agentsInfo).map(([agent, info]) => ({
                 name: agent,
@@ -261,32 +300,94 @@ Expected Response:
     }
 
     private async simplifyResponse(agentName: string, messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]): Promise<string> {
-        const simplificationPrompt = `breifly in md format, describe the process you did to get answer, in summuary, and make sure only include Agent Call Result, not step 1`
-        const somplifierMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [...messages, { role: "user", content: simplificationPrompt }];
+        const simplificationPrompt = `You are a helpful assistant that makes complex information easy to understand.
+
+Your task is to simplify and format the previous agent's response to be more user-friendly.
+
+Guidelines:
+1. Focus on the actual results and findings
+2. Use clear, simple language
+3. Format the response in a readable way using markdown.
+4. If the response includes technical details:
+   • Explain them in simpler terms
+   • Keep technical details if they're important, but explain what they mean
+5. If the response includes steps or processes:
+   • Summarize them clearly
+   • Focus on what the user needs to know
+
+Important:
+• Keep the essential information
+• Remove unnecessary technical jargon
+• Make it conversational but informative
+• Include any important warnings or notes
+• If there are actionable items, make them clear
+
+Please simplify the previous response while maintaining its core meaning and important details.`;
+
+        const simplifierMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+            ...messages,
+            {
+                role: "system",
+                content: "You are an expert at making complex information clear and user-friendly."
+            },
+            {
+                role: "user",
+                content: simplificationPrompt
+            }
+        ];
+
         const simplifiedResponse = await this.baseLLmOi.chat.completions.create({
-            messages: somplifierMessages,
+            messages: simplifierMessages,
             model: this.options.baseLLm.model,
-            temperature: 0.3
+            temperature: 0.4,
+            max_tokens: 500
         });
+
         return simplifiedResponse.choices[0].message.content || "";
     }
 
-
-
     private generateAgentPrompt(agent: Agent, lastAgent: string | null, toolName: string, lastAgentResponse: string): string {
-        return `
-Current Step: ${toolName},
-${lastAgentResponse ? `[${lastAgent}] response:\n${lastAgentResponse}\n---\n` : ''}
-Now with ${toolName}, you have to generate the response in this specific format I want.
+        const contextSection = lastAgentResponse
+            ? `Previous Step Result:
+Tool: ${lastAgent}
+Output: ${lastAgentResponse}
+
+Note: Consider this previous result if it contains information relevant to your task.`
+            : '';
+
+        const formatExample = agent.callFormat();
+        const formatFields = formatExample.match(/"(\w+)":/g)?.map(field => field.replace(/[":]/g, '')) || [];
+
+        return `You are the "${toolName}" specialist in our AI system. Your role is to analyze the conversation and extract or generate the necessary information in a specific format.
 
 ${agent.description}
---
-Please provide your response based on the expected format and instructions.
-Expected Response:
-${agent.callFormat()}
-`;
-    }
 
+${contextSection}
+
+Instructions:
+1. Analyze the entire conversation context, including:
+   • The user's original request
+   • Any previous tool outputs (if relevant)
+   • The current conversation flow
+
+2. For each required field in your response format:
+   • Extract relevant information from the conversation
+   • Generate appropriate values if needed
+   • Ensure values make sense in the current context
+
+Required Fields:
+${formatFields.map(field => `• ${field}: [Information needed for this field]`).join('\n')}
+
+Response Format:
+${formatExample}
+
+Important:
+• Your response must be valid JSON matching the format exactly
+• Focus on extracting information that's most relevant to your specific function
+• Use conversation context intelligently - previous results may or may not be relevant
+• Be precise but creative in interpreting user intent
+• If certain information is unclear, make reasonable assumptions based on context`;
+    }
 }
 
 export default FridayAgents;
