@@ -11,6 +11,7 @@ interface Options {
         endpoint: string
         apikey: string
     }
+    debug?: boolean
     onChooseAgents: (reason: string, agents: string[]) => void
     onUsingAgent: (name: string) => void
     onAgentFinished: (name: string, result: any) => void
@@ -27,13 +28,35 @@ interface ReasoningAgentResponse {
 class FridayAgents {
     private options: Options;
     baseLLmOi: OpenAI
+    private readonly debug: boolean;
+
     constructor(options: Options) {
         this.options = options;
+        this.debug = options.debug || false;
         this.baseLLmOi = new OpenAI({
             apiKey: this.options.baseLLm.apikey,
             baseURL: this.options.baseLLm.endpoint,
             dangerouslyAllowBrowser: true
         })
+    }
+
+    private debugLog(type: 'info' | 'error' | 'warning' | 'success', message: string, data?: any) {
+        if (!this.debug) return;
+
+        const colors = {
+            info: '\x1b[36m',     // Cyan
+            error: '\x1b[31m',    // Red
+            warning: '\x1b[33m',  // Yellow
+            success: '\x1b[32m'   // Green
+        };
+        const reset = '\x1b[0m';
+        const timestamp = new Date().toISOString();
+        const prefix = `${colors[type]}[${timestamp}] [${type.toUpperCase()}]${reset}`;
+
+        console.log(`${prefix} ${message}`);
+        if (data) {
+            console.log(`${colors[type]}[DATA]${reset}`, data);
+        }
     }
 
     async run({ messages, user, date, cutoff_date }: {
@@ -47,24 +70,41 @@ class FridayAgents {
     }) {
         return new Promise(async (resolve, reject) => {
             try {
+                this.debugLog('info', 'Starting FridayAgents run', { user, date, cutoff_date });
                 const tools = this.options.agents.map(agent => `${agent.name}:\n${agent.description}`).join("\n\n");
                 const systemPrompt = this.generateSystemPrompt(user, date, cutoff_date);
-                const pureMessages = this.combineMessages(systemPrompt, messages);
-                const combinedPrompt = this.generateCombinedPrompt(tools);
-                const combinedMessages = this.combineMessages(systemPrompt, messages, combinedPrompt);
+                this.debugLog('info', 'Generated system prompt', { systemPrompt });
 
+                const pureMessages = this.combineMessages(systemPrompt, messages);
+                const toolsAndKeywords = this.options.agents.reduce((acc, agent) => {
+                    acc[agent.name] = agent.keywords || [];
+                    return acc;
+                }, {} as Record<string, string[]>);
+
+                const combinedPrompt = this.generateCombinedPrompt(toolsAndKeywords, messages);
+                this.debugLog('info', 'Generated combined prompt', { combinedPrompt });
+
+                const combinedMessages = this.combineMessages(systemPrompt, messages, combinedPrompt);
+                this.debugLog('info', 'Sending request to OpenAI');
                 const response = await this.getOpenAIResponse(this.baseLLmOi, combinedMessages);
+                this.debugLog('success', 'Received response from OpenAI', response);
+
                 const parsedResponse = this.parseResponse(response);
+                this.debugLog('info', 'Parsed response', parsedResponse);
                 this.options.onChooseAgents?.(parsedResponse.tool_reasoning, parsedResponse.tools);
 
                 if (parsedResponse.tools.includes('no-tool') || !parsedResponse.tools.length) {
+                    this.debugLog('info', 'No tools required, handling direct response');
                     await this.handleNoToolResponse(parsedResponse);
                 } else {
+                    this.debugLog('info', 'Executing agents', { tools: parsedResponse.tools });
                     await this.executeAgents(parsedResponse.tools, pureMessages);
                 }
 
+                this.debugLog('success', 'FridayAgents run completed successfully');
                 resolve(true);
             } catch (error) {
+                this.debugLog('error', 'Error in FridayAgents run', error);
                 console.error("Error in FridayAgents run:", error);
                 reject(error);
             }
@@ -85,11 +125,15 @@ ${cutoff_date ? `Data Cutoff Date: ${cutoff_date}` : ''}
 `;
     }
 
-    private generateCombinedPrompt(tools: string): string {
+    private generateCombinedPrompt(tools: Record<string, string[]>, messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]): string {
         return `
 You are a highly capable AI assistant with access to specialized tools. Your role is to either provide direct assistance or determine which tools are needed to best help the user.
 
-Available Tools: ${tools}
+Available Tools ( and their keywords ):
+ ${Object.entries(tools)
+                .map(([name, keywords]) => `${name}${keywords?.length ? `:\nkeywords: ${keywords.join(", ")}` : '.'}`)
+                .join("\n\n")}
+}
 
 Core Instructions:
 1. Analyze the user's intent carefully - what are they really trying to achieve?
@@ -117,10 +161,15 @@ Core Instructions:
    - Feel free to be creative and engaging in your responses
 
 5. Make sure the response is valid JSON.
+6. attention to last user message.
 
 Remember: You're not just a tool selector - you're a helpful assistant first. When no tools are needed, focus on providing valuable, engaging responses that truly help the user.
 
-Always responsd in valid JSON format.
+Last Message:\n
+${messages[messages.length - 1].content}
+--
+
+Important Note: Always responsd in valid JSON format.
 Response Format:
 {
     "tool_reasoning": string, // Your thought process for tool selection
@@ -202,10 +251,12 @@ Response Format:
             const toolName = tools[i];
             const agent = this.options.agents.find(a => a.name === toolName);
             if (!agent) {
+                this.debugLog('warning', `Agent ${toolName} not found`);
                 console.warn(`Agent ${toolName} not found`);
                 continue;
             }
 
+            this.debugLog('info', `Starting execution of agent: ${toolName}`);
             await this.options.onUsingAgent?.(toolName);
 
             let retryCount = 0;
@@ -219,11 +270,12 @@ Response Format:
             while (retryCount < this.options.maxAgentRetry) {
                 try {
                     const agentPrompt = this.generateAgentPrompt(agent, lastAgent?.name ?? null, toolName, lastAgentResponse);
+                    this.debugLog('info', 'Generated agent prompt', { agentPrompt });
+
                     const newMessages: any = [...messages, { role: "user", content: agentPrompt }];
-
-
                     agent.ai = {
                         create: async (params) => {
+                            this.debugLog('info', 'Creating OpenAI completion for agent', params);
                             return await this.baseLLmOi.chat.completions.create({
                                 model: this.options.baseLLm.model,
                                 temperature: 0.2,
@@ -231,13 +283,18 @@ Response Format:
                             });
                         }
                     }
+
                     const agentResponse = await this.baseLLmOi.chat.completions.create({
                         messages: newMessages,
                         model: this.options.baseLLm.model,
                         temperature: 0.2
                     });
+                    this.debugLog('success', 'Received agent response', agentResponse);
+
                     const agentStep1Result = agentResponse.choices[0].message.content || "";
                     agentCallResult = await agent.onCall(agentStep1Result);
+                    this.debugLog('success', `Agent ${toolName} execution completed`, { result: agentCallResult });
+
                     const usedSeconds = (Date.now() - startTime) / 1000;
                     agentsInfo[toolName] = {
                         result: agentCallResult,
@@ -255,6 +312,7 @@ Response Format:
                     agentsMessages.push(agentCallResultMessage);
                     break;
                 } catch (error) {
+                    this.debugLog('error', `Error executing agent ${toolName} (attempt ${retryCount + 1}/${this.options.maxAgentRetry})`, error);
                     console.error(`Error executing agent ${toolName}:`, error);
                     retryCount++;
                     if (error instanceof Error && retryCount == this.options.maxAgentRetry) {

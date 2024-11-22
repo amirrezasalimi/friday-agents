@@ -17,6 +17,7 @@ export default abstract class Agent<C = {}, DataOutput = {}> {
     needSimplify: boolean = false
     abstract name: string
     abstract description: string
+    keywords?: string[] = []
     abstract callFormat(): string;
     abstract onCall(result: string): Promise<any>;
     needsPreviousResult?: boolean

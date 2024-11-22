@@ -17,12 +17,21 @@ export default class ChartAgent extends Agent<{}, ChartData> {
     viewType: Agent['viewType'] = "view";
     needSimplify: boolean = true;
     name = "chart"
+    
+    keywords: string[] = [
+        "visualization",
+        "charts",
+        "graphs",
+        "data visualization",
+        'bar chart, pie chart, line chart',
+    ]
     useCases: string[] = [
         "1. **Data Analysis**: Visualizing complex datasets to identify trends, patterns, and insights.",
         "2. **Reporting**: Creating visual reports for presentations to convey information clearly and effectively.",
         "3. **Decision Making**: Supporting data-driven decisions by providing visual context to numerical data."
     ];
-    description: string = `Capable of visualizing data in various chart formats, such as bar, pie, or line charts. Ideal for making complex data more digestible and visually appealing.\nuseCases:\n${this.useCases.join("\n")}
+    description: string = `Capable of visualizing data in various chart formats, such as bar, pie, or line charts. Ideal for making complex data more digestible and visually appealing.
+useCases:\n${this.useCases.join("\n")}
 \n
 Rules
 - Always select the appropriate chart type based on the data and user's intent.
