@@ -105,11 +105,10 @@ class FridayAgents {
 
                 const combinedMessages = this.combineMessages(systemPrompt, messages, combinedPrompt);
                 this.debugLog('info', 'Sending request to OpenAI');
-                const response = await this.getOpenAIResponse(this.baseLLm, combinedMessages);
-                this.debugLog('success', 'Received response from OpenAI', response);
+                
+                const parsedResponse = await this.getOpenAIResponseWithParsing(combinedMessages);
+                this.debugLog('success', 'Received and parsed response from OpenAI', parsedResponse);
 
-                const parsedResponse = this.parseResponse(response);
-                this.debugLog('info', 'Parsed response', parsedResponse);
                 this.options.onChooseAgents?.(parsedResponse.tool_reasoning, parsedResponse.tools);
 
                 if (parsedResponse.tools.includes('no-tool') || !parsedResponse.tools.length) {
@@ -215,33 +214,31 @@ Response Format:
         return baseMessages;
     }
 
-    private async getOpenAIResponse(oai: OpenAI, messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-        return this.withRetry(
-            () => this.baseLLm.chat.completions.create({
+    private async getOpenAIResponseWithParsing(messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]): Promise<ReasoningAgentResponse> {
+        return this.withRetry(async () => {
+            const response = await this.baseLLm.chat.completions.create({
                 messages: messages,
                 model: this.options.baseLLm.model,
                 temperature: 0.2,
                 top_p: 0.2
-            }),
-            'OpenAI request'
-        );
-    }
+            });
 
-    private parseResponse(response: OpenAI.Chat.Completions.ChatCompletion): ReasoningAgentResponse {
-        if (response.choices?.length) {
+            if (!response.choices?.length) {
+                throw new Error("No choices in OpenAI response");
+            }
+
             const content = extractFirstJson(response.choices[0].message.content ?? "");
             if (!content) {
                 throw new Error("Invalid JSON in response");
             }
-            const parsedResponse = JSON.parse(content) as ReasoningAgentResponse;
 
-            if (!parsedResponse.tools.length) {
+            const parsedResponse = JSON.parse(content) as ReasoningAgentResponse;
+            if (!parsedResponse.tools?.length) {
                 parsedResponse.tools = ['no-tool'];
             }
 
             return parsedResponse;
-        }
-        throw new Error("No choices in OpenAI response");
+        }, 'OpenAI request and parsing');
     }
 
     private async handleNoToolResponse(reasoning: ReasoningAgentResponse) {
@@ -420,15 +417,22 @@ Please simplify the previous response while maintaining its core meaning and imp
         ];
 
         const simplifiedResponse = await this.withRetry(
-            () => this.baseLLm.chat.completions.create({
-                messages: simplifierMessages,
-                model: this.options.baseLLm.model,
-                temperature: 0.4
-            }),
+            async () => {
+                const response = await this.baseLLm.chat.completions.create({
+                    messages: simplifierMessages,
+                    model: this.options.baseLLm.model,
+                    temperature: 0.4
+                });
+                const content = response.choices[0].message.content || "";
+                if (!content) {
+                    throw new Error('Empty response from OpenAI');
+                }
+                return content;
+            },
             'OpenAI simplify request'
         );
 
-        return simplifiedResponse.choices[0].message.content || "";
+        return simplifiedResponse;
     }
 
     private generateAgentPrompt(agent: Agent, lastAgent: string | null, toolName: string, lastAgentResponse: string): string {

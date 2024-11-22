@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@daveyplate/next-rate-limit": "^1.0.8",
-    "@friday-agents/core": "^1.0.10",
+    "@friday-agents/core": "^1.0.11",
     "@nextui-org/react": "^2.4.8",
     "@nextui-org/system": "^2.2.6",
     "@nextui-org/theme": "^2.2.11",
