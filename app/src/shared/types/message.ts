@@ -1,4 +1,3 @@
-import {} from '../../../../core'
 export interface Message {
     id: string;
     role: "user" | "assistant" | "system";
