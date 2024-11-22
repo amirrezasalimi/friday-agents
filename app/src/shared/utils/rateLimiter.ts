@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { caching } from 'cache-manager';
-import * as fsStore from 'cache-manager-fs-hash';
+import Keyv from 'keyv';
+import KeyvFile from 'keyv-file';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -17,7 +17,7 @@ interface RateLimitInfo {
 
 class RateLimiter {
     private static instances: Map<string, RateLimiter> = new Map();
-    private cache: any;
+    private cache: Keyv | null = null;
     private readonly limit: number;
     private readonly windowMs: number;
     private readonly name: string;
@@ -43,14 +43,13 @@ class RateLimiter {
         const tmpDir = path.join(process.cwd(), 'tmp', 'rate-limit-cache');
         await this.ensureDirectory(tmpDir);
         
-        this.cache = await caching(fsStore.create({
-            store: fsStore,
-            options: {
-                path: tmpDir,
-                ttl: Math.ceil(this.windowMs / 1000),
-                subdirs: true,
-            },
-        }));
+        this.cache = new Keyv({
+            store: new KeyvFile({
+                filename: path.join(tmpDir, `${this.name}.json`), // Store each limiter in its own file
+                expiredCheckDelay: 24 * 60 * 60 * 1000, // Check for expired items every 24 hours
+            }),
+            ttl: this.windowMs, // Set TTL in milliseconds
+        });
 
         this.initialized = true;
     }
@@ -81,7 +80,7 @@ class RateLimiter {
         const cacheKey = `${this.name}:${ip}`;
         const now = Date.now();
 
-        let info: RateLimitInfo | null = await this.cache?.get(cacheKey);
+        let info: RateLimitInfo | null = await this.cache?.get(cacheKey) || null;
         
         if (!info || now >= info.resetTime) {
             info = {
@@ -92,9 +91,8 @@ class RateLimiter {
 
         info.count++;
         
-        // Store the updated info with TTL
-        const ttl = Math.ceil((info.resetTime - now) / 1000);
-        await this.cache?.set(cacheKey, info, { ttl });
+        // Store the updated info
+        await this.cache?.set(cacheKey, info);
 
         const remaining = Math.max(0, this.limit - info.count);
         const limited = info.count > this.limit;
@@ -107,8 +105,8 @@ class RateLimiter {
     }
 
     async destroy(): Promise<void> {
-        if (this.initialized) {
-            await this.cache?.reset();
+        if (this.initialized && this.cache) {
+            await this.cache.clear();
             this.initialized = false;
         }
         RateLimiter.instances.delete(this.name);

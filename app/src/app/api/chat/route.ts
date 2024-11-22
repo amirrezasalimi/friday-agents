@@ -55,7 +55,7 @@ async function handler(request: NextRequest) {
 }
 
 export const POST = withRateLimit(handler, {
-    limit: 30,
+    limit: 20,
     windowMs: 10 * 1000,
     name: 'chat-api'
 });

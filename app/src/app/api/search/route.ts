@@ -48,7 +48,7 @@ async function handler(request: NextRequest) {
 }
 
 export const POST = withRateLimit(handler, {
-    limit: 50,  // Higher limit for search as it's typically less resource-intensive
+    limit: 3,  // Higher limit for search as it's typically less resource-intensive
     windowMs: 10 * 1000,
     name: 'search-api'
 });
