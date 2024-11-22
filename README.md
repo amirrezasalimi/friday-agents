@@ -76,8 +76,6 @@ Run the development server:
 npm run dev
 ```
 
-See [Demo App Documentation](app/README.md) for more details.
-
 ## Features
 
 - **Multi-agent Orchestration**: Automatically selects and coordinates multiple agents
