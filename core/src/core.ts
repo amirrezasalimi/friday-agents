@@ -6,6 +6,7 @@ import { extractFirstJson } from "./utils";
 interface Options {
     agents: Agent[]
     maxAgentRetry: number
+    maxLLmRetry?: number
     baseLLm: {
         model: string
         endpoint: string
@@ -27,13 +28,13 @@ interface ReasoningAgentResponse {
 
 class FridayAgents {
     private options: Options;
-    baseLLmOi: OpenAI
+    baseLLm: OpenAI
     private readonly debug: boolean;
 
     constructor(options: Options) {
         this.options = options;
         this.debug = options.debug || false;
-        this.baseLLmOi = new OpenAI({
+        this.baseLLm = new OpenAI({
             apiKey: this.options.baseLLm.apikey,
             baseURL: this.options.baseLLm.endpoint,
             dangerouslyAllowBrowser: true
@@ -57,6 +58,24 @@ class FridayAgents {
         if (data) {
             console.log(`${colors[type]}[DATA]${reset}`, data);
         }
+    }
+
+    private async withRetry<T>(operation: () => Promise<T>, operationName: string): Promise<T> {
+        const maxRetries = this.options.maxLLmRetry || 3;
+        let lastError: any;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                return await operation();
+            } catch (error) {
+                lastError = error;
+                this.debugLog('error', `${operationName} failed, attempt ${attempt + 1}/${maxRetries}`, error);
+                if (attempt === maxRetries - 1) throw error;
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Simple 1s delay between retries
+            }
+        }
+
+        throw lastError;
     }
 
     async run({ messages, user, date, cutoff_date }: {
@@ -86,7 +105,7 @@ class FridayAgents {
 
                 const combinedMessages = this.combineMessages(systemPrompt, messages, combinedPrompt);
                 this.debugLog('info', 'Sending request to OpenAI');
-                const response = await this.getOpenAIResponse(this.baseLLmOi, combinedMessages);
+                const response = await this.getOpenAIResponse(this.baseLLm, combinedMessages);
                 this.debugLog('success', 'Received response from OpenAI', response);
 
                 const parsedResponse = this.parseResponse(response);
@@ -197,12 +216,15 @@ Response Format:
     }
 
     private async getOpenAIResponse(oai: OpenAI, messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-        return await this.baseLLmOi.chat.completions.create({
-            messages: messages,
-            model: this.options.baseLLm.model,
-            temperature: 0.2,
-            top_p: 0.2
-        });
+        return this.withRetry(
+            () => this.baseLLm.chat.completions.create({
+                messages: messages,
+                model: this.options.baseLLm.model,
+                temperature: 0.2,
+                top_p: 0.2
+            }),
+            'OpenAI request'
+        );
     }
 
     private parseResponse(response: OpenAI.Chat.Completions.ChatCompletion): ReasoningAgentResponse {
@@ -276,19 +298,22 @@ Response Format:
                     agent.ai = {
                         create: async (params) => {
                             this.debugLog('info', 'Creating OpenAI completion for agent', params);
-                            return await this.baseLLmOi.chat.completions.create({
-                                model: this.options.baseLLm.model,
-                                temperature: 0.2,
-                                ...params
-                            });
+                            return await this.withRetry(
+                                () => this.baseLLm.chat.completions.create({
+                                    ...params,
+                                    model: this.options.baseLLm.model
+                                }),
+                                'OpenAI create request'
+                            );
                         }
                     }
 
-                    const agentResponse = await this.baseLLmOi.chat.completions.create({
+                    const agentResponse = await this.baseLLm.chat.completions.create({
                         messages: newMessages,
                         model: this.options.baseLLm.model,
                         temperature: 0.2
-                    });
+                    })
+
                     this.debugLog('success', 'Received agent response', agentResponse);
 
                     const agentStep1Result = agentResponse.choices[0].message.content || "";
@@ -394,12 +419,14 @@ Please simplify the previous response while maintaining its core meaning and imp
             }
         ];
 
-        const simplifiedResponse = await this.baseLLmOi.chat.completions.create({
-            messages: simplifierMessages,
-            model: this.options.baseLLm.model,
-            temperature: 0.4,
-            max_tokens: 500
-        });
+        const simplifiedResponse = await this.withRetry(
+            () => this.baseLLm.chat.completions.create({
+                messages: simplifierMessages,
+                model: this.options.baseLLm.model,
+                temperature: 0.4
+            }),
+            'OpenAI simplify request'
+        );
 
         return simplifiedResponse.choices[0].message.content || "";
     }
