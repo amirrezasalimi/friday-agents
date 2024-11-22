@@ -32,24 +32,44 @@ The framework comes with several built-in agents:
 
 ### 1. Core Library Setup
 
+You can either build the core library locally or install it directly from npm.
+
+#### Option A: Install from npm (Recommended)
+
+```bash
+npm install @friday-agents/core
+```
+
+#### Option B: Build Locally
+
+We use [bun](https://bun.sh) by default for better performance, but you can use npm/yarn as well.
+
 ```bash
 cd core
-npm install
-npm run build  # Build the core library
-npm link      # Make the package available locally
+bun install
+bun run build  # Build the core library
+bun link      # Make the package available locally
 ```
 
 See [Core Library Documentation](core/README.md) for detailed usage instructions.
 
 ### 2. Demo Application Setup
 
+You can use our demo app as a starting point for your own application:
+
 ```bash
-cd app
-npm install
-npm link @friday/core  # Link the local core library
+# Clone the template
+git clone https://github.com/amirrezasalimi/friday-agents my-ai-app
+cd my-ai-app
+
+# Install dependencies
+bun install  # or npm install / yarn
+
+# If you built core locally
+bun link @friday-agents/core  # or npm link / yarn link
 ```
 
-Create a `.env.local` file in the `/app` directory:
+Create a `.env.local` file in the root directory:
 
 ```env
 # Base LLM Configuration (Required)
@@ -71,10 +91,12 @@ REPLICATE_IMAGE_MODEL=black-forest-labs/flux-schnell
 
 All agent configurations are handled automatically through the Next.js API routes. You only need to set up these environment variables to get started.
 
-Run the development server:
+Start the development server:
 ```bash
-npm run dev
+bun dev  # or npm run dev / yarn dev
 ```
+
+Visit `http://localhost:3000` to see your AI application in action!
 
 ## Features
 
