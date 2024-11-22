@@ -91,12 +91,10 @@ REPLICATE_IMAGE_MODEL=black-forest-labs/flux-schnell
 
 All agent configurations are handled automatically through the Next.js API routes. You only need to set up these environment variables to get started.
 
-Start the development server:
+Run the development server:
 ```bash
-bun dev  # or npm run dev / yarn dev
+npm run dev
 ```
-
-Visit `http://localhost:3000` to see your AI application in action!
 
 ## Features
 
