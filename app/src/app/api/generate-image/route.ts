@@ -56,6 +56,6 @@ async function handler(request: NextRequest) {
 
 export const POST = withRateLimit(handler, {
     limit: 1,  // Lower limit for image generation as it's more resource-intensive
-    windowMs: 60 * 1000,  // 1 minute window
+    windowMs: 60 * 60 * 1000,  // 1 minute window
     name: 'image-generation-api'
 });
