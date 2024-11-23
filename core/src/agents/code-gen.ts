@@ -16,6 +16,17 @@ export default class CodeGenAgent extends Agent<CodeGenAgentConfig> {
     viewType: Agent['viewType'] = "text";
     needSimplify: boolean = false;
     name: string = "developer";
+    keywords: string[] = [
+        "code-generation",
+        "development",
+        "algorithms",
+        "documentation",
+        "python",
+        "javascript",
+        "typescript",
+        "java",
+        "rust"
+    ];
     description: string = `This agent specializes in generating high-quality, production-ready code based on natural language descriptions.
 It can create complete functions, classes, or entire modules in various programming languages.
 The generated code follows best practices, includes proper error handling, and comes with appropriate documentation.

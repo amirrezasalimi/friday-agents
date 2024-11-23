@@ -111,7 +111,10 @@ const useChat = () => {
                     // prompt: message.content,
                     date: todayDate,
                     cutoff_date: cutoffDate
-                }).catch(reject);
+                }).catch((reason) => {
+                    reject(reason);
+                    throw new Error(reason);
+                });
             } catch (error) {
                 updateMeta({
                     status: "error",

@@ -12,7 +12,6 @@ searchAgent.config = {
     endpoint: SEARCH_API_URL,
 }
 
-const jsCodeAgent = new JsCodeAgent();
 const imageAgent = new ReplicateImageAgent();
 imageAgent.config = {
     apiToken: "no need",
@@ -21,7 +20,6 @@ imageAgent.config = {
 
 const agents: Agent[] = [
     imageAgent,
-    jsCodeAgent,
     searchAgent,
     new ChartAgent(),
     new CodeGenAgent(),

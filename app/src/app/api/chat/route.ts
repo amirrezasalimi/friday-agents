@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withRateLimit } from '@/shared/utils/withRateLimit';
+import OpenAI from 'openai';
 
 async function handler(request: NextRequest) {
     try {
@@ -17,33 +18,25 @@ async function handler(request: NextRequest) {
 
         const apiKey = process.env.LLM_KEY;
         const model = process.env.LLM_MODEL;
-        const endpoint = process.env.LLM_HOST;
+        const host = process.env.LLM_HOST;
 
-        if (!apiKey || !model || !endpoint) {
+        if (!apiKey || !model || !host) {
             return NextResponse.json(
                 { error: 'Missing server configuration' },
                 { status: 500 }
             );
         }
 
-        const response = await fetch(`${endpoint}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-                model: model,
-                messages,
-                temperature
-            }),
+        const openai = new OpenAI({
+            apiKey: apiKey,
+            baseURL: host
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const completion = await response.json();
+        const completion = await openai.chat.completions.create({
+            model: model,
+            messages,
+            temperature
+        });
         return NextResponse.json(completion);
     } catch (error) {
         console.error('Chat error:', error);
