@@ -126,6 +126,10 @@ Join our community to get help, share your projects, and connect with other deve
 - Discord: [Join our Discord Server](https://discord.gg/AP42aAvS74)
 - Twitter: [@amirrezasalimi](https://github.com/amirrezasalimi)
 
+## Acknowledgments
+
+Special thanks to [Abolfazl](https://github.com/abolfazlNik/) for creating the beautiful UI/UX design of this project.
+
 ## License
 
 MIT License
