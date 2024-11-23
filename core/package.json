@@ -1,6 +1,6 @@
 {
   "name": "@friday-agents/core",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "A JavaScript framework for orchestrating multiple AI-driven agents to handle complex tasks like data processing, code generation, chart creation, and image generation",
   "private": false,
   "main": "dist/cjs/index.js",

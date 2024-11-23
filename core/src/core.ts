@@ -187,7 +187,10 @@ Last Message:\n
 ${messages[messages.length - 1].content}
 --
 
-Important Note: Always responsd in valid JSON format.
+Important Notes:
+1. Always responsd in valid JSON format.
+2. If the "message" gonna be too long, it's better to use most related tool for it.
+
 Response Format:
 {
     "tool_reasoning": string, // Your thought process for tool selection
