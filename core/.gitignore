@@ -1,5 +1,6 @@
 # Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 tests
+dist
 # Logs
 
 logs
@@ -118,7 +119,7 @@ out
 # Nuxt.js build / generate output
 
 .nuxt
-
+dist
 
 # Gatsby files
 
