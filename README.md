@@ -3,7 +3,7 @@
 The **Friday Agents** is a powerful JavaScript framework for building AI-powered applications using a multi-agent architecture. It consists of two main components:
 
 1. **Core Library** (`/core`): A TypeScript library for orchestrating multiple AI agents
-2. **Demo App** (`/app`): A Next.js application showcasing the library's capabilities
+2. **Demo App** (`/app`): A Remix application showcasing the library's capabilities
 
 ![concept](concept.png)
 
@@ -14,7 +14,7 @@ friday-agents/
 ├── core/               # Core library implementation
 │   ├── src/           # Source code
 │   └── README.md      # Library documentation
-└── app/               # Next.js demo application
+└── app/               # Remix demo application
     └── src/           # Application source
 ```
 
@@ -69,7 +69,7 @@ bun install  # or npm install / yarn
 bun link @friday-agents/core  # or npm link / yarn link
 ```
 
-Create a `.env.local` file in the root directory:
+Create a `.env` file in the root directory:
 
 ```env
 # Base LLM Configuration (Required)
@@ -89,7 +89,7 @@ REPLICATE_API_TOKEN=your_replicate_api_token
 REPLICATE_IMAGE_MODEL=black-forest-labs/flux-schnell
 ```
 
-All agent configurations are handled automatically through the Next.js API routes. You only need to set up these environment variables to get started.
+All agent configurations are handled automatically through the Remix API routes. You only need to set up these environment variables to get started.
 
 Run the development server:
 ```bash
@@ -100,7 +100,7 @@ npm run dev
 
 - **Multi-agent Orchestration**: Automatically selects and coordinates multiple agents
 - **Flexible Configuration**: Easy to configure and extend with custom agents
-- **Modern UI**: Beautiful Next.js-based interface with real-time updates
+- **Modern UI**: Beautiful Remix-based interface with real-time updates
 - **TypeScript Support**: Full type safety and IDE support
 - **Extensible**: Easy to add new agents and capabilities
 
