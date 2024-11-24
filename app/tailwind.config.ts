@@ -3,13 +3,10 @@ import type { Config } from "tailwindcss";
 
 export default {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx,css}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx,css}",
     "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}",
-    "../node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: "class",
-
   plugins: [nextui({
     defaultTheme: "dark"
   })],
