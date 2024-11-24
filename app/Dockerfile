@@ -10,6 +10,9 @@ COPY package*.json ./
 # Install app dependencies
 RUN npm install -f
 
+# Install dotenv globally
+RUN npm install -g dotenv-cli
+
 # Bundle your app source
 COPY . .
 
