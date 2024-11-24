@@ -7,7 +7,7 @@
     "build": "remix vite:build",
     "dev": "remix vite:dev",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-    "start": "remix-serve ./build/server/index.js",
+    "start": "dotenv -e .env remix-serve ./build/server/index.js",
     "typecheck": "tsc"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
     "@types/prismjs": "^1.26.5",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/strip-comments": "^2.0.4",
+    "dotenv-cli": "^7.4.4",
     "framer-motion": "^11.11.17",
     "isbot": "^4.1.0",
     "keyv-file": "^5.0.3",

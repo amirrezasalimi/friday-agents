@@ -4,3 +4,4 @@ app/tmp/*
 app/tmp/rate-limit-cache/chat-api.json
 app/bun.lockb
 app/package-lock.json
+core/bun.lockb
