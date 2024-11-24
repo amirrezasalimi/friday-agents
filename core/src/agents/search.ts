@@ -11,6 +11,7 @@ export default class SearchAgent extends Agent<SearchAgentConfig> {
     viewType: Agent['viewType'] = "text"; // The output will be presented in text format
     needSimplify: boolean = true; // Flag to determine if the search results need to be simplified
     name: string = "search"; // Agent's name for easy identification
+    keywords?: string[] = ["google","real-time", "historical", "news", "research", "trends","live"];
     description: string = `This agent is used to search for real-time & updated information or historical data from online sources / internet,
 such as Google. It is versatile for retrieving the most up-to-date information, like current events or breaking news,
 as well as archived or past data or current, making it suitable for research, trends analysis, and historical references.

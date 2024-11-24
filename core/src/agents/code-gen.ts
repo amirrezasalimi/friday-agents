@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import Agent from "./agent";
 import { extractFirstJson } from "../utils";
 
@@ -15,20 +14,15 @@ interface CodeGenRequest {
 export default class CodeGenAgent extends Agent<CodeGenAgentConfig> {
     viewType: Agent['viewType'] = "text";
     needSimplify: boolean = false;
-    name: string = "developer";
+    name: string = "code";
     keywords: string[] = [
         "code-generation",
         "development",
         "algorithms",
         "documentation",
-        "python",
-        "javascript",
-        "typescript",
-        "java",
-        "rust"
     ];
     description: string = `This agent specializes in generating high-quality, production-ready code based on natural language descriptions.
-It can create complete functions, classes, or entire modules in various programming languages.
+It can create complete functions, classes, or entire modules in various programming languages or frameworks.
 The generated code follows best practices, includes proper error handling, and comes with appropriate documentation.
 `;
 
