@@ -4,7 +4,7 @@ import Replicate from "replicate";
 
   // Check rate limit - lower limit for image generation as it's more resource-intensive
   const rateLimiter = createRateLimiter({
-    limit: 2,
+    limit: 5,
     windowMs: 60 * 60 * 1000, // 1 minute
     name: "generate-image-api",
   });
