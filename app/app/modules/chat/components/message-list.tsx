@@ -60,7 +60,7 @@ export const MessageList = memo(
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="w-full h-full flex flex-col gap-3 sm:gap-4 overflow-y-scroll pb-4 px-2 sm:px-3 relative"
+          className="w-full h-full flex flex-col gap-3 sm:gap-4 overflow-y-auto pb-4 px-2 sm:px-3 relative"
         >
           {messages.map((message, index) => (
             <ChatMessage
