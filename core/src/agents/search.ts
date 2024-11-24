@@ -11,11 +11,11 @@ export default class SearchAgent extends Agent<SearchAgentConfig> {
     viewType: Agent['viewType'] = "text"; // The output will be presented in text format
     needSimplify: boolean = true; // Flag to determine if the search results need to be simplified
     name: string = "search"; // Agent's name for easy identification
-    keywords?: string[] = ["google","real-time", "historical", "news", "research", "trends","live"];
+    keywords?: string[] = ["google","real-time","recent-events", "historical", "news", "research", "trends","live","market"];
     description: string = `This agent is used to search for real-time & updated information or historical data from online sources / internet,
 such as Google. It is versatile for retrieving the most up-to-date information, like current events or breaking news,
 as well as archived or past data or current, making it suitable for research, trends analysis, and historical references.
-Note: If user mentioned specific date or time , you should use search tool .
+Note: If user asked about current / recent events, this agent can be used to provide relevant information, such as breaking news, live updates, or real-time updates.
 `;
 
 

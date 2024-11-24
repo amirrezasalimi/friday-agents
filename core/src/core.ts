@@ -237,6 +237,7 @@ ${messages[messages.length - 1].content}
 Important Notes:
 1. Always respond using the following XML format, no other responses or texts in prefix or suffix.
 2. only attention to last user message.
+3. You have to use multiple tools if the task is complex and requires multiple steps.
 Available Tools and Agents ( and their related keywords ):
 ${Object.entries(tools)
   .map(
@@ -253,6 +254,7 @@ Valid Response Format:
     <tools>
         <tool>tool_name</tool>
         <!-- available tools: ${Object.keys(tools).join(", ")} -->
+        <!-- use sequence of tools based on needed stuff in user prompt -->
     </tools>
     <message>Your helpful and engaging response here!</message>
 </response>
