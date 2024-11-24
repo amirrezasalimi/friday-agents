@@ -2,3 +2,5 @@ node_modules
 temp*
 app/tmp/*
 app/tmp/rate-limit-cache/chat-api.json
+app/bun.lockb
+app/package-lock.json
