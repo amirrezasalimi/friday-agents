@@ -3,6 +3,7 @@ import { TbTrash } from "react-icons/tb";
 import { AgentContentRenderer } from "./agent-content-renderer";
 import MessageContent from "./message-content";
 import { Message } from "~/shared/types/message";
+import useAgents from "~/shared/hooks/agents";
 
 
 interface MessageProps {
