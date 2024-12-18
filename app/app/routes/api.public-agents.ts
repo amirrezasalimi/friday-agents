@@ -44,7 +44,6 @@ const cachedLoader = () =>
       // For each directory inside public-agents, check if it contains a package.json
       for (const dir of dirs) {
         const dirPath = path.join(publicAgentsDirPath, dir.toString());
-        console.log(`dirPath:`, dirPath);
 
         // Ensure it's a directory and not a file
         if (fs.statSync(dirPath).isDirectory()) {
@@ -72,7 +71,6 @@ const cachedLoader = () =>
 export async function loader() {
   try {
     const data = await cachedLoader();
-    console.log("Data:", data);
     return Response.json(data);
   } catch (error) {
     console.error("Error cloning repository:", error);
