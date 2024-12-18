@@ -29,8 +29,19 @@ interface AgentOptions {
       params: AiCreateOptions
     ) => Promise<OpenAI.Chat.Completions.ChatCompletion>; // Method to create AI completions.
   };
+  chat: {
+    showCanvas(title: string | undefined, html: string);
+    addMessage(message: string, role: "user" | "assistant", at_end?: boolean);
+    updateProgress(title: string);
+  };
 }
 
+export interface configDocItem {
+  type: "string" | "number" | "boolean";
+  required?: boolean;
+  description: string;
+  value?: any;
+}
 /**
  * Abstract class representing an agent that interacts with AI.
  * @template C - Type for configuration.
@@ -38,16 +49,9 @@ interface AgentOptions {
  */
 export default abstract class Agent<C = {}, DataOutput = {}> {
   public ai: AgentOptions["ai"] | null = null;
+  public chat: AgentOptions["chat"] | null = null;
   public config: C | null = null;
-  configDoc: null | Record<
-    keyof C,
-    {
-      type: "string" | "number" | "boolean" | "object";
-      description: string;
-      required?: boolean;
-      value?: any;
-    }
-  > = null;
+  configDoc?: Record<string, configDocItem>;
 
   abstract viewType: "text" | "view";
   needSimplify: boolean;
