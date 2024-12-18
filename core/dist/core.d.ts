@@ -1,4 +1,4 @@
-import type Agent from "./agents/agent";
+import type Agent from "./agents/core/agent";
 import type { FinalResponse } from "./types";
 import { OpenAI } from "openai";
 interface Options {

@@ -1,4 +1,4 @@
-import Agent from "../agent";
+import Agent from "../core/agent";
 export default class ImageAgent extends Agent<{
     apiKey: string;
     secretKey: string;

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import Agent from "./agent";
+import Agent from "./core/agent";
 import { extractFirstJson } from "../utils";
 
 export interface SearchAgentConfig {

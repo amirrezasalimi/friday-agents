@@ -1,4 +1,4 @@
-import Agent from "./agent";
+import Agent from "./core/agent";
 export default class JsCodeAgent extends Agent {
     viewType: Agent['viewType'];
     needSimplify: boolean;

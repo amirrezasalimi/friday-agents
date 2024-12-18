@@ -1,4 +1,4 @@
-import Agent from "./agent";
+import Agent from "./core/agent";
 export interface SearchAgentConfig {
     endpoint: string;
     model: string;

@@ -48,7 +48,8 @@
   "dependencies": {
     "openai": "^4.73.0",
     "strip-comments": "^2.0.1",
-    "strip-json-comments": "^5.0.1"
+    "strip-json-comments": "^5.0.1",
+    "xmldom": "^0.6.0"
   },
   "files": [
     "dist",

@@ -1,7 +1,8 @@
-import type Agent from "./agents/agent";
+import type Agent from "./agents/core/agent";
 import type { FinalResponse } from "./types";
 import { OpenAI } from "openai";
 import { extractFirstJson } from "./utils";
+import { DOMParser } from "xmldom";
 
 interface Options {
   agents: Agent[];
@@ -257,6 +258,7 @@ Valid Response Format:
         <!-- use sequence of tools based on needed stuff in user prompt -->
     </tools>
     <message>Your helpful and engaging response here!</message>
+    <!-- Only fill message if no tools are needed -->
 </response>
 `;
   }
@@ -284,25 +286,35 @@ Valid Response Format:
   }
 
   private parseXMLResponse(xmlContent: string): ReasoningAgentResponse {
-    // Extract individual elements
-    const toolReasoningMatch = xmlContent.match(
-      /<tool_reasoning>([\s\S]*?)<\/tool_reasoning>/
-    );
-    const toolsMatch = xmlContent.match(/<tools>([\s\S]*?)<\/tools>/);
-    const messageMatch = xmlContent.match(/<message>([\s\S]*?)<\/message>/);
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
 
-    if (!toolReasoningMatch || !toolsMatch || !messageMatch) {
+    // Extract individual elements
+    const toolReasoningNode = xmlDoc.getElementsByTagName("tool_reasoning")[0];
+    const toolsNode = xmlDoc.getElementsByTagName("tools")[0];
+    const messageNode = xmlDoc.getElementsByTagName("message")?.[0];
+
+    if (!toolReasoningNode || !toolsNode) {
       throw new Error("Missing required XML elements");
     }
 
+    // Extract text content with type assertions
+    const toolReasoning = (toolReasoningNode.textContent || "").trim();
+    const message = (messageNode?.textContent || "").trim();
+
     // Extract tools from the tools section
-    const toolTags = toolsMatch[1].match(/<tool>([^<]+)<\/tool>/g) || [];
-    const tools = toolTags.map((tag) => tag.replace(/<\/?tool>/g, "").trim());
+    const toolNodes = toolsNode.getElementsByTagName("tool");
+    const tools: string[] = [];
+
+    for (let i = 0; i < toolNodes.length; i++) {
+      const tool = toolNodes[i].textContent?.trim() || "";
+      if (tool) tools.push(tool);
+    }
 
     return {
-      tool_reasoning: toolReasoningMatch[1].trim(),
+      tool_reasoning: toolReasoning,
       tools: tools.length ? tools : ["no-tool"],
-      message: messageMatch[1].trim(),
+      message,
     };
   }
 

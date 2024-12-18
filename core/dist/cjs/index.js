@@ -44,8 +44,6 @@ var exports_src = {};
 __export(exports_src, {
   extractFirstJson: () => extractFirstJson,
   SearchAgent: () => SearchAgent,
-  JsCodeAgent: () => JsCodeAgent,
-  ImageAgent: () => ImageAgent,
   FridayAgents: () => core_default,
   CodeGenAgent: () => CodeGenAgent,
   ChartAgent: () => ChartAgent,
@@ -77,25 +75,20 @@ function extractFirstJson(content) {
   }
   return null;
 }
-function extractCodeBlocks(text) {
-  const langRegex = /```(?:typescript|javascript)([\s\S]*?)```/i;
-  const langMatch = text.match(langRegex);
-  if (langMatch) {
-    return langMatch[1].trim();
-  }
-  const plainRegex = /```([\s\S]*?)```/;
-  const plainMatch = text.match(plainRegex);
-  return plainMatch ? plainMatch[1].trim() : text.trim();
-}
 
-// src/agents/agent.ts
+// src/agents/core/agent.ts
 class Agent {
   ai = null;
   config = null;
-  needSimplify = false;
-  keywords = [];
-  needsPreviousResult;
+  configDoc = null;
+  needSimplify;
+  name;
+  description;
+  keywords;
   dataOutput;
+  sharedAgentData;
+  uiActions;
+  agentServer;
 }
 
 // src/agents/chart.ts
@@ -144,9 +137,9 @@ Rules
    ],
 
 }`;
-  async onCall(result2) {
+  async onCall(result) {
     try {
-      const firstJson = extractFirstJson(result2);
+      const firstJson = extractFirstJson(result);
       if (!firstJson)
         return null;
       const jsonData = JSON.parse(firstJson);
@@ -154,101 +147,6 @@ Rules
       return jsonData.values;
     } catch (e) {
       return null;
-    }
-  }
-}
-
-// src/agents/js-code.ts
-var import_strip_comments = __toESM(require("strip-comments"));
-
-class JsCodeAgent extends Agent {
-  viewType = "text";
-  needSimplify = true;
-  name = "run-js-code";
-  keywords = ["js-code-runner", "javascript", "js-code-execution"];
-  description = `
-# JavaScript Code Execution Agent
-
-This agent specializes in executing JavaScript code snippets with the following capabilities:
-
-## Features
-- Executes modern JavaScript (ES6+) code snippets
-- Provides immediate feedback with execution results
-- Handles both synchronous and asynchronous code
-- Supports standard JavaScript built-ins and globals
-
-## Limitations
-- No external package imports or requires
-- No DOM/Browser APIs available
-- No file system access
-- Maximum execution time of 5 seconds
-- Memory usage limited to prevent abuse
-
-## Code Format Requirements
-1. Code must be wrapped in an arrow function: () => { ... }
-2. Must return a value or use console.log for output
-3. Uses ES6+ syntax only
-4. No external dependencies or imports
-5. Must be pure JavaScript (no TypeScript, JSX, etc.)
-
-## Example Usage
-\`\`\`javascript
-() => {
-    const numbers = [1, 2, 3, 4, 5];
-    const sum = numbers.reduce((a, b) => a + b, 0);
-    return \`Sum of numbers: \${sum}\`;
-}
-\`\`\`
-`;
-  callFormat = () => "() => { /* your code here */ return result; }";
-  validateCode(code2) {
-    if (!code2.includes("=>"))
-      return false;
-    if (!code2.includes("return") && !code2.includes("console.log"))
-      return false;
-    if (code2.includes("require(") || code2.includes("import "))
-      return false;
-    return true;
-  }
-  formatError(error) {
-    return `Error during execution:
-${error.name}: ${error.message}`;
-  }
-  async onCall(result) {
-    try {
-      const fnCode = import_strip_comments.default(extractCodeBlocks(result));
-      if (!this.validateCode(fnCode)) {
-        return "Invalid code format. Code must be an arrow function that returns a value or uses console.log";
-      }
-      const CustomEval = (code) => {
-        const transpiler = new Bun.Transpiler({
-          loader: "js",
-          target: "browser"
-        });
-        const timeoutCode = `
-                    let executionTimeout;
-                    const timeoutPromise = new Promise((_, reject) => {
-                        executionTimeout = setTimeout(() => {
-                            reject(new Error('Execution timeout - exceeded 5 seconds'));
-                        }, 5000);
-                    });
-                    
-                    const result = Promise.race([
-                        Promise.resolve(${code}),
-                        timeoutPromise
-                    ]);
-                    
-                    clearTimeout(executionTimeout);
-                    return result;
-                `;
-        return eval(transpiler.transformSync(`eval((${timeoutCode}))`));
-      };
-      const functionExpression = CustomEval(fnCode);
-      const res = await functionExpression();
-      return typeof res === "undefined" ? "Code executed successfully but returned no value" : `Code Run Output:
-${JSON.stringify(res, null, 2)}`;
-    } catch (error) {
-      return this.formatError(error);
     }
   }
 }
@@ -268,10 +166,10 @@ Note: If user asked about current / recent events, this agent can be used to pro
   callFormat() {
     return '{ "query": "simple search query..." }';
   }
-  async onCall(result2) {
+  async onCall(result) {
     let jsonData = null;
     try {
-      jsonData = JSON.parse(extractFirstJson(result2) ?? "");
+      jsonData = JSON.parse(extractFirstJson(result) ?? "");
     } catch (e) {
       return null;
     }
@@ -286,7 +184,7 @@ ${query}`;
         baseURL: this.config?.endpoint,
         dangerouslyAllowBrowser: true
       });
-      const res2 = await oai.chat.completions.create({
+      const res = await oai.chat.completions.create({
         model: this.config?.model ?? "",
         messages: [
           {
@@ -296,8 +194,8 @@ ${query}`;
         ],
         temperature: 0.4
       });
-      if (res2.choices.length) {
-        return res2.choices[0].message.content;
+      if (res.choices.length) {
+        return res.choices[0].message.content;
       }
     }
     return null;
@@ -326,10 +224,10 @@ The generated code follows best practices, includes proper error handling, and c
     "context": "any additional context or requirements (optional)"
 }`;
   }
-  async onCall(result2) {
+  async onCall(result) {
     let request = null;
     try {
-      request = JSON.parse(extractFirstJson(result2) ?? "");
+      request = JSON.parse(extractFirstJson(result) ?? "");
     } catch (e) {
       return null;
     }
@@ -360,125 +258,9 @@ ${request.context ? `Additional context: ${request.context}` : ""}`;
   }
 }
 
-// src/agents/image/brainFusion_text2image.ts
-class Text2ImageAPI {
-  url;
-  authHeaders;
-  constructor(url, apiKey, secretKey) {
-    this.url = url;
-    this.authHeaders = new Headers({
-      "X-Key": `Key ${apiKey}`,
-      "X-Secret": `Secret ${secretKey}`
-    });
-  }
-  async getModel() {
-    try {
-      const response = await fetch(`${this.url}key/api/v1/models`, {
-        method: "GET",
-        headers: this.authHeaders
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to retrieve model: ${response.statusText}`);
-      }
-      let data = [];
-      data = await response.json();
-      return data[0].id;
-    } catch (error) {
-      console.error("Error getting model:", error);
-      throw error;
-    }
-  }
-  async generate(prompt, model, images = 1, width = 1024, height = 1024) {
-    try {
-      const params = {
-        type: "GENERATE",
-        numImages: images,
-        width,
-        height,
-        generateParams: {
-          query: prompt
-        }
-      };
-      const formData = new FormData;
-      formData.append("model_id", model);
-      formData.append("params", new Blob([JSON.stringify(params)], { type: "application/json" }));
-      const response = await fetch(`${this.url}key/api/v1/text2image/run`, {
-        method: "POST",
-        headers: this.authHeaders,
-        body: formData
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to generate image: ${response.statusText}`);
-      }
-      const data = await response.json();
-      return data.uuid;
-    } catch (error) {
-      console.error("Error generating image:", error);
-      throw error;
-    }
-  }
-  async checkGeneration(requestId, attempts = 15, delay = 1e4) {
-    try {
-      for (let i = 0;i < attempts; i++) {
-        const response = await fetch(`${this.url}key/api/v1/text2image/status/${requestId}`, {
-          method: "GET",
-          headers: this.authHeaders
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to retrieve status: ${response.statusText}`);
-        }
-        const data = await response.json();
-        if (data.status === "DONE") {
-          return data.images;
-        }
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-      throw new Error("Generation timed out");
-    } catch (error) {
-      console.error("Error checking generation:", error);
-      throw error;
-    }
-  }
-}
-
-// src/agents/image/index.ts
-class ImageAgent extends Agent {
-  viewType = "view";
-  needSimplify = false;
-  name = "image";
-  description = `This Agent Made to generate any images user asked.`;
-  callFormat = () => `{
-    "prompt": "detailed prompt to generate image based on users request"
-}`;
-  imagesSaveDir = "";
-  constructor(imagesSaveDir = "../images") {
-    super();
-    this.imagesSaveDir = imagesSaveDir;
-  }
-  async onCall(result2) {
-    if (!this.config?.apiKey || !this.config.secretKey) {
-      throw "Missing apiKey or secret key";
-    }
-    let jsonData = null;
-    try {
-      jsonData = JSON.parse(extractFirstJson(result2) ?? "");
-    } catch (e) {
-      return null;
-    }
-    if (!jsonData?.prompt) {
-      throw new Error("prompt shouldn't be empty.");
-    }
-    const api = new Text2ImageAPI("https://api-key.fusionbrain.ai/", this.config?.apiKey, this.config?.secretKey);
-    const modelId = await api.getModel();
-    const uuid = await api.generate(jsonData.prompt, modelId, 1, 512, 512);
-    const images = await api.checkGeneration(uuid);
-    this.dataOutput = images;
-    return true;
-  }
-}
-
 // src/core.ts
 var import_openai2 = require("openai");
+var import_xmldom = require("xmldom");
 
 class FridayAgents {
   options;
@@ -645,6 +427,7 @@ Valid Response Format:
         <!-- use sequence of tools based on needed stuff in user prompt -->
     </tools>
     <message>Your helpful and engaging response here!</message>
+    <!-- Only fill message if no tools are needed -->
 </response>
 `;
   }
@@ -663,18 +446,27 @@ Valid Response Format:
     return match ? match[1].trim() : null;
   }
   parseXMLResponse(xmlContent) {
-    const toolReasoningMatch = xmlContent.match(/<tool_reasoning>([\s\S]*?)<\/tool_reasoning>/);
-    const toolsMatch = xmlContent.match(/<tools>([\s\S]*?)<\/tools>/);
-    const messageMatch = xmlContent.match(/<message>([\s\S]*?)<\/message>/);
-    if (!toolReasoningMatch || !toolsMatch || !messageMatch) {
+    const parser = new import_xmldom.DOMParser;
+    const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
+    const toolReasoningNode = xmlDoc.getElementsByTagName("tool_reasoning")[0];
+    const toolsNode = xmlDoc.getElementsByTagName("tools")[0];
+    const messageNode = xmlDoc.getElementsByTagName("message")?.[0];
+    if (!toolReasoningNode || !toolsNode) {
       throw new Error("Missing required XML elements");
     }
-    const toolTags = toolsMatch[1].match(/<tool>([^<]+)<\/tool>/g) || [];
-    const tools = toolTags.map((tag) => tag.replace(/<\/?tool>/g, "").trim());
+    const toolReasoning = (toolReasoningNode.textContent || "").trim();
+    const message = (messageNode?.textContent || "").trim();
+    const toolNodes = toolsNode.getElementsByTagName("tool");
+    const tools = [];
+    for (let i = 0;i < toolNodes.length; i++) {
+      const tool = toolNodes[i].textContent?.trim() || "";
+      if (tool)
+        tools.push(tool);
+    }
     return {
-      tool_reasoning: toolReasoningMatch[1].trim(),
+      tool_reasoning: toolReasoning,
       tools: tools.length ? tools : ["no-tool"],
-      message: messageMatch[1].trim()
+      message
     };
   }
   async getOpenAIResponseWithParsing(messages) {

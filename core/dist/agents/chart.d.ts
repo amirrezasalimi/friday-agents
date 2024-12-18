@@ -1,4 +1,4 @@
-import Agent from "./agent";
+import Agent from "./core/agent";
 interface ChartData {
     title: string;
     type: "bar" | "pie" | "line";

@@ -1,10 +1,8 @@
 import ChartAgent from "./agents/chart";
-import JsCodeAgent from "./agents/js-code";
 import SearchAgent from "./agents/search";
 import CodeGenAgent from "./agents/code-gen";
-import ImageAgent from "./agents/image/index";
 import FridayAgents from "./core";
-import Agent from "./agents/agent";
+import Agent from "./agents/core/agent";
 import { extractFirstJson } from "./utils";
 export type { FinalResponse, ReasoningAndTools, } from './types';
-export { FridayAgents, JsCodeAgent, CodeGenAgent, SearchAgent, ChartAgent, ImageAgent, Agent, extractFirstJson };
+export { FridayAgents, CodeGenAgent, SearchAgent, ChartAgent, Agent, extractFirstJson };

@@ -1,5 +1,5 @@
 import { extractFirstJson } from "../utils";
-import Agent from "./agent";
+import Agent from "./core/agent";
 
 interface ChartData {
     title: string;
@@ -67,4 +67,5 @@ Rules
             return null;
         }
     }
+    
 }
