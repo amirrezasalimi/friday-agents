@@ -7,10 +7,10 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@friday-agents/core": "^1.0.16"
+    "@friday-agents/core": "file:../../core"
   },
   "info": {
     "title": "Brainfusion Image",

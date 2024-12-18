@@ -1,4 +1,8 @@
-import { Agent, extractFirstJson } from "@friday-agents/core";
+import {
+  Agent,
+  extractFirstJson,
+  type configDocItem,
+} from "@friday-agents/core";
 import { Text2ImageAPI } from "./brainFusion_text2image";
 
 export default class ImageAgent extends Agent<
@@ -8,6 +12,18 @@ export default class ImageAgent extends Agent<
   },
   string[]
 > {
+  configDoc: Record<string, configDocItem> = {
+    apiKey: {
+      type: "string",
+      description: "API Key",
+      required: true,
+    },
+    secretKey: {
+      type: "string",
+      description: "Secret Key",
+      required: true,
+    },
+  };
   viewType: Agent["viewType"] = "view";
   needSimplify: boolean = false;
   name = "image";
