@@ -39,12 +39,13 @@ interface AgentOptions {
 export default abstract class Agent<C = {}, DataOutput = {}> {
   public ai: AgentOptions["ai"] | null = null;
   public config: C | null = null;
-  public configDoc: null | Record<
-    string,
+  configDoc: null | Record<
+    keyof C,
     {
       type: "string" | "number" | "boolean" | "object";
       description: string;
       required?: boolean;
+      value?: any;
     }
   > = null;
 
